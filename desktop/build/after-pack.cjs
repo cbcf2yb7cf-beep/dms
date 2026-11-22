@@ -16,7 +16,7 @@ exports.default = async function afterPack(context) {
   if (!fs.existsSync(path.join(source, "server.js"))) throw new Error(`Server fehlt: ${source}`);
   fs.rmSync(target, { recursive: true, force: true });
   fs.cpSync(source, target, { recursive: true, dereference: true });
-  for (const needed of ["server.js", ".next/BUILD_ID", "node_modules/next/package.json", "node_modules/better-sqlite3/prebuilds/darwin-arm64.node", "src/db/migrations"]) {
+  for (const needed of ["server.js", ".next/BUILD_ID", "node_modules/next/package.json", "node_modules/better-sqlite3/prebuilds/darwin-arm64.node", "src/db/migrations", "bible/bible.db"]) {
     if (!fs.existsSync(path.join(target, needed))) throw new Error(`Im App-Paket fehlt: server/${needed}`);
   }
   console.log(`  • Server kopiert: ${target}`);

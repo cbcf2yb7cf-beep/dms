@@ -81,11 +81,18 @@ export function CommandPalette() {
     const list: Entry[] = [];
     if (current.stelle) {
       list.push({
+        key: "bibel",
+        href: `/bibel?stelle=${encodeURIComponent(current.stelle)}`,
+        label: `${current.stelle} in der Bibel aufschlagen`,
+        hint: "Bibel",
+        icon: <BookOpen className="size-5 text-accent" aria-hidden="true" />,
+      });
+      list.push({
         key: "stelle",
         href: `/archiv?stelle=${encodeURIComponent(current.stelle)}`,
         label: `Dokumente zu ${current.stelle}`,
-        hint: "Bibelstelle",
-        icon: <BookOpen className="size-5 text-accent" aria-hidden="true" />,
+        hint: "Archiv",
+        icon: <FileText className="size-5 text-accent" aria-hidden="true" />,
       });
     }
     for (const d of current.docs) {
@@ -95,6 +102,15 @@ export function CommandPalette() {
         label: d.title || "Ohne Titel",
         hint: [TYPE_LABELS[d.type], d.mainRef].filter(Boolean).join(" · "),
         icon: <FileText className="size-5 text-muted" aria-hidden="true" />,
+      });
+    }
+    if (!current.stelle) {
+      list.push({
+        key: "konkordanz",
+        href: `/bibel/suche?q=${encodeURIComponent(q)}`,
+        label: `„${q}“ in der Bibel suchen`,
+        hint: "Konkordanz",
+        icon: <BookOpen className="size-5 text-muted" aria-hidden="true" />,
       });
     }
     list.push({

@@ -67,6 +67,7 @@ async function startServer() {
       PORT: String(port),
       HOSTNAME: "127.0.0.1",
       DATABASE_PATH: path.join(dataDir, "app.db"),
+      BIBLE_PATH: path.join(dir, "bible", "bible.db"),
       DMS_DATA_DIR: dataDir,
       DMS_LOCAL_TOKEN: token,
       DMS_USER_NAME: userName(),

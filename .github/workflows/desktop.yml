@@ -35,6 +35,17 @@ jobs:
           set -o pipefail
           { node -v; npm -v; sw_vers; uname -m; npm ci --no-audit --no-fund || npm install --no-audit --no-fund; } 2>&1 | tee "$LOGS/1-abhaengigkeiten.txt"
 
+      - name: Cache Bibel-Quellen
+        uses: actions/cache@v4
+        with:
+          path: .bible-cache
+          key: bible-sources-${{ hashFiles('scripts/bible/sources.mjs') }}
+
+      - name: 1b Bibeldaten bauen
+        run: |
+          set -o pipefail
+          node scripts/bible/build.mjs data/bible.db 2>&1 | tee "$LOGS/1b-bibel.txt"
+
       - name: 2 Tests
         run: |
           set -o pipefail
@@ -92,6 +103,10 @@ jobs:
           check /einstellungen "-b dms-local-token=probe" 200
           check "/api/suche?q=test" "-b dms-local-token=probe" 200
           curl -s -b dms-local-token=probe http://127.0.0.1:4123/ | grep -q "Probe" && echo "Begrüßung ok"
+          check "/bibel?b=43&c=3" "-b dms-local-token=probe" 200
+          check "/bibel/suche?q=Gnade" "-b dms-local-token=probe" 200
+          check "/bibel/strong/G5485" "-b dms-local-token=probe" 200
+          curl -s -b dms-local-token=probe "http://127.0.0.1:4123/api/bibel/text?ref=Joh%203,16&tr=luther1912" | grep -q "Also hat Gott die Welt geliebt" && echo "Bibeltext ok"
           test -f "$DATA/app.db"
           kill $PID
 

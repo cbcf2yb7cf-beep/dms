@@ -26,6 +26,11 @@ if (process.platform === "darwin") {
 const needed = process.platform === "darwin" ? "darwin-arm64.node" : readdirSync(join(target, "prebuilds"))[0];
 if (!needed || !existsSync(join(target, "prebuilds", needed))) throw new Error("better-sqlite3: keine passende Binärdatei");
 
+// Bibeldaten (scripts/bible/build.mjs) – nur lesend genutzt.
+const bible = join(root, "data", "bible.db");
+if (!existsSync(bible)) throw new Error("data/bible.db fehlt – erst `node scripts/bible/build.mjs` ausführen.");
+cpSync(bible, join(sa, "bible", "bible.db"));
+
 // Symlinks durch echte Kopien ersetzen: Turbopack verlinkt externe Pakete
 // (.next/node_modules/better-sqlite3-<hash> -> ../../node_modules/better-sqlite3), und die
 // strenge Signaturprüfung von macOS (codesign --strict) lehnt solche Links im App-Paket ab.

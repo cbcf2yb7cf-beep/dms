@@ -128,3 +128,16 @@ export const importItems = sqliteTable("import_items", {
   documentId: text("document_id"),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
 });
+
+// ── Phase 4: Bibel ──────────────────────────────────────────────────────────
+
+export const bookmarks = sqliteTable("bookmarks", {
+  verseId: integer("verse_id").primaryKey(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+export const verseNotes = sqliteTable("verse_notes", {
+  verseId: integer("verse_id").primaryKey(),
+  text: text("text").notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});

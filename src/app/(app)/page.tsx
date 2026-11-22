@@ -16,7 +16,7 @@ export const metadata = { title: "Dashboard" };
 // Noch nicht gebaute Bereiche laut Plan (docs/PLAN.md).
 const MODULES: Record<string, { phase?: number; text: string }> = {
   "/archiv": { text: "Predigten und Vorträge schreiben, ordnen und wiederfinden" },
-  "/bibel": { phase: 4, text: "Freie Übersetzungen parallel, Konkordanz und Grundtext" },
+  "/bibel": { text: "8 freie Übersetzungen parallel, Konkordanz, Grundtext mit Strong, Querverweise" },
   "/themen": { phase: 5, text: "Alle Predigten und Bibelstellen zu einem Thema" },
   "/praesentationen": { phase: 6, text: "Folien aus der Gliederung, Referentenansicht am Beamer" },
   "/assistent": { phase: 7, text: "Claude hilft bei Gliederung, Recherche und Folien" },

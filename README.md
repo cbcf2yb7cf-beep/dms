@@ -15,7 +15,7 @@ ist aber seit 2026-11-22 nicht mehr in Betrieb (dms.hausundrasen.de abgeschaltet
 | – | Mac-App (DMG) über GitHub Actions | ✅ |
 | 2 | Archiv & Editor (Tiptap), Versionen, Papierkorb, Bibelstellen-Erkennung, Filter, ⌘K-Dokumentsuche | ✅ |
 | 3 | Import: Ordner/Dateien (DOCX, DOCM, DOC, RTF, TXT, PPTX, PDF), Angaben aus Dateinamen, Originale, Bericht, Rückgängig | ✅ (OCR für Scans offen) |
-| 4 | Bibelzentrum (freie Übersetzungen, Konkordanz, Strong) | offen |
+| 4 | Bibelzentrum: 8 freie Übersetzungen (6 dt., 3 engl.) parallel, Konkordanz, Grundtext + Strong-Lexikon, Querverweise, Lesezeichen/Notizen, Verse im Editor | ✅ |
 | 5 | Suche & Themennetz | offen |
 | 6 | Präsentationen + PWA/offline | offen |
 | 7 | Claude-Assistent | offen |
@@ -64,3 +64,11 @@ Mac-App haben **getrennte** Datenbestände.
   *Systemeinstellungen → Datenschutz & Sicherheit → „Dennoch öffnen“*.
 
 Lokal testen ohne DMG (auf einem Mac): `DMS_DESKTOP=1 npm run build && node desktop/prepare.mjs && cd desktop && npm install && npm start`.
+
+## Bibeldaten
+
+`node scripts/bible/build.mjs data/bible.db` lädt die freien Quellen (`scripts/bible/sources.mjs`, Cache in
+`.bible-cache/`), prüft Lizenzen und Versanzahl und erzeugt `data/bible.db` (~140 MB, nur lesend genutzt).
+Der Mac-Build macht das automatisch; die Datei liegt in der App unter `Resources/server/bible/bible.db`.
+Übersetzungen: Luther 1912, Elberfelder 1905, Schlachter 1951 (CC BY), Elberfelder bibelkommentare.de
+(CC BY-NC-ND), Textbibel 1906, KJV, BSB, WEB. Grundtext/Lexika: STEPBible (CC BY), Querverweise: OpenBible.info (CC BY).

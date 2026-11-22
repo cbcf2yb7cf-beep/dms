@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Editor } from "@tiptap/react";
 import { useEditorState } from "@tiptap/react";
 import {
@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 import { formatRef, parseRef } from "@/lib/bible/refs";
 
-export const TRANSLATIONS = ["Luther 1912", "Elberfelder 1905", "Schlachter 1951", "King James Version", "World English Bible", "Berean Standard Bible"];
 
 function Btn({ label, active, onClick, disabled, children }: { label: string; active?: boolean; onClick: () => void; disabled?: boolean; children: React.ReactNode }) {
   return (
@@ -119,6 +118,9 @@ export function Toolbar({ editor }: { editor: Editor }) {
   );
 }
 
+type TrOption = { id: string; name: string; short: string };
+const LAST_TR = "dms-letzte-uebersetzung";
+
 function BibleForm({
   editing,
   initial,
@@ -133,16 +135,61 @@ function BibleForm({
   onRemove?: () => void;
 }) {
   const [reference, setReference] = useState(initial.reference ?? "");
-  const [translation, setTranslation] = useState(initial.translation || "Luther 1912");
+  const [options, setOptions] = useState<TrOption[]>([]);
+  const [trId, setTrId] = useState<string>("");
+  const [customName, setCustomName] = useState(initial.translation ?? "");
   const [text, setText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const parsed = reference.trim() ? parseRef(reference) : undefined;
+
+  // Übersetzungen der eingebauten Bibel laden; zuletzt benutzte vorauswählen.
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/bibel/uebersetzungen")
+      .then((r) => (r.ok ? r.json() : { translations: [] }))
+      .then((d: { translations: TrOption[] }) => {
+        if (!alive) return;
+        setOptions(d.translations);
+        const byName = d.translations.find((t) => t.name === initial.translation);
+        const last = d.translations.find((t) => t.id === localStorage.getItem(LAST_TR));
+        setTrId((byName ?? last ?? d.translations[0])?.id ?? "");
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [initial.translation]);
+
+  const trName = options.find((t) => t.id === trId)?.name ?? customName;
+
+  async function loadText(): Promise<string | null> {
+    if (!parsed || !trId) return null;
+    setLoading(true);
+    setError(null);
+    try {
+      const r = await fetch(`/api/bibel/text?ref=${encodeURIComponent(formatRef(parsed))}&tr=${trId}`);
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error ?? "Text nicht gefunden");
+      setText(d.text);
+      return d.text as string;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Text nicht gefunden");
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <form
       className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-surface-2 p-3"
-      onSubmit={(e) => {
+      onSubmit={async (e) => {
         e.preventDefault();
-        onSubmit({ reference: parsed ? formatRef(parsed) : reference.trim(), translation: translation.trim(), text });
+        if (trId) localStorage.setItem(LAST_TR, trId);
+        // Ohne eigenen Text: Vers automatisch aus der Bibel holen.
+        const finalText = !editing && !text.trim() && parsed && trId ? ((await loadText()) ?? "") : text;
+        onSubmit({ reference: parsed ? formatRef(parsed) : reference.trim(), translation: trName.trim(), text: finalText });
       }}
     >
       <div className="min-w-40 flex-1">
@@ -154,28 +201,38 @@ function BibleForm({
       </div>
       <div className="min-w-40 flex-1">
         <label htmlFor="bible-tr" className="label">Übersetzung</label>
-        <input id="bible-tr" list="bible-translations" value={translation} onChange={(e) => setTranslation(e.target.value)} className="input bg-surface" />
-        <datalist id="bible-translations">
-          {TRANSLATIONS.map((t) => (
-            <option key={t} value={t} />
-          ))}
-        </datalist>
+        {options.length > 0 ? (
+          <select id="bible-tr" value={trId} onChange={(e) => setTrId(e.target.value)} className="input bg-surface">
+            {options.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+        ) : (
+          <input id="bible-tr" value={customName} onChange={(e) => setCustomName(e.target.value)} className="input bg-surface" />
+        )}
+        <p className="mt-1 text-xs text-transparent" aria-hidden="true">.</p>
       </div>
       {!editing && (
         <div className="w-full">
-          <label htmlFor="bible-text" className="label">Verstext (optional)</label>
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <label htmlFor="bible-text" className="label mb-0">Verstext</label>
+            {options.length > 0 && (
+              <button type="button" onClick={() => void loadText()} disabled={!parsed || loading} className="text-sm text-accent underline disabled:no-underline disabled:opacity-50">
+                {loading ? "Lädt …" : "Text aus der Bibel holen"}
+              </button>
+            )}
+          </div>
           <textarea
             id="bible-text"
             value={text}
             onChange={(e) => setText(e.target.value)}
             rows={3}
-            placeholder="Vers hier einfügen – oder leer lassen und danach im Block schreiben. Ab Phase 4 kommt der Text automatisch aus der Bibel."
+            placeholder={options.length ? "Leer lassen – der Vers wird beim Einfügen automatisch aus der gewählten Übersetzung geholt. Oder eigenen Text einfügen." : "Vers hier einfügen"}
             className="input bg-surface py-2 font-serif"
           />
+          {error && <p className="mt-1 text-xs text-danger" role="alert">{error}</p>}
         </div>
       )}
       <div className="flex flex-wrap gap-2">
-        <button type="submit" className="btn-primary">{editing ? "Übernehmen" : "Einfügen"}</button>
+        <button type="submit" className="btn-primary" disabled={loading}>{editing ? "Übernehmen" : "Einfügen"}</button>
         {onRemove && <button type="button" className="btn-secondary" onClick={onRemove}>Block lösen</button>}
         <button type="button" className="btn-secondary" onClick={onCancel}>Abbrechen</button>
       </div>
