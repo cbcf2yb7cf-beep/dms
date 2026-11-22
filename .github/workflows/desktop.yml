@@ -52,6 +52,8 @@ jobs:
       - name: Probelauf der fertigen App
         run: |
           set -euo pipefail
+          trap 'echo "--- Server-Protokoll ---"; cat server.log 2>/dev/null || true' EXIT
+          ls desktop/dist
           APP="desktop/dist/mac-arm64/DMS.app"
           codesign --verify --deep --strict --verbose=2 "$APP"
           RES="$APP/Contents/Resources/server"
@@ -72,7 +74,6 @@ jobs:
           curl -s -b dms-local-token=probe http://127.0.0.1:4123/ | grep -q "Probe" && echo "Begrüßung ok"
           test -f "$DATA/app.db"
           kill $PID
-          cat server.log
 
       - uses: actions/upload-artifact@v5
         with:
