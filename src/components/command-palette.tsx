@@ -2,24 +2,27 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CornerDownLeft, Search } from "lucide-react";
+import { BookOpen, CornerDownLeft, FileText, Search, TextSearch } from "lucide-react";
 import { NAV, SETTINGS_NAV } from "@/lib/nav";
+import { TYPE_LABELS } from "@/lib/doc-meta";
+import type { DocType } from "@/db/schema";
 import { NavIcon } from "./nav-icon";
 
 const EVENT = "dms:open-search";
 export const openSearch = () => window.dispatchEvent(new Event(EVENT));
 
-const ENTRIES = [...NAV, SETTINGS_NAV];
+const AREAS = [...NAV, SETTINGS_NAV];
 
-/**
- * Globale Suche (⌘K / Strg+K). In Phase 1 springt sie zu Bereichen; ab Phase 2/5
- * kommen Dokumente, Bibelstellen und Themen als Treffer dazu.
- */
+type DocHit = { id: string; title: string; type: DocType; mainRef: string };
+type Entry = { key: string; href: string; label: string; hint?: string; icon: React.ReactNode };
+
+/** Globale Suche (⌘K / Strg+K): Dokumente, Bibelstellen, Volltext im Archiv, Bereiche. */
 export function CommandPalette() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [index, setIndex] = useState(0);
+  const [hits, setHits] = useState<{ q: string; docs: DocHit[]; stelle: string | null }>({ q: "", docs: [], stelle: null });
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -46,11 +49,63 @@ export function CommandPalette() {
     }
   }, [open]);
 
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return ENTRIES;
-    return ENTRIES.filter((e) => `${e.label} ${e.keywords}`.toLowerCase().includes(q));
+  // Dokumente suchen (leicht verzögert, nur die letzte Antwort zählt).
+  useEffect(() => {
+    const q = query.trim();
+    if (!q) return;
+    const ctrl = new AbortController();
+    const t = setTimeout(() => {
+      fetch(`/api/suche?q=${encodeURIComponent(q)}`, { signal: ctrl.signal })
+        .then((r) => (r.ok ? r.json() : { docs: [], stelle: null }))
+        .then((data) => setHits({ q, docs: data.docs, stelle: data.stelle }))
+        .catch(() => {});
+    }, 150);
+    return () => {
+      clearTimeout(t);
+      ctrl.abort();
+    };
   }, [query]);
+
+  const entries = useMemo<Entry[]>(() => {
+    const q = query.trim();
+    const lower = q.toLowerCase();
+    const areas = AREAS.filter((e) => !q || `${e.label} ${e.keywords}`.toLowerCase().includes(lower)).map((e) => ({
+      key: e.href,
+      href: e.href,
+      label: e.label,
+      hint: "Bereich",
+      icon: <NavIcon name={e.icon} className="size-5 text-muted" />,
+    }));
+    if (!q) return areas;
+    const current = hits.q === q ? hits : { docs: [], stelle: null };
+    const list: Entry[] = [];
+    if (current.stelle) {
+      list.push({
+        key: "stelle",
+        href: `/archiv?stelle=${encodeURIComponent(current.stelle)}`,
+        label: `Dokumente zu ${current.stelle}`,
+        hint: "Bibelstelle",
+        icon: <BookOpen className="size-5 text-accent" aria-hidden="true" />,
+      });
+    }
+    for (const d of current.docs) {
+      list.push({
+        key: d.id,
+        href: `/archiv/${d.id}`,
+        label: d.title || "Ohne Titel",
+        hint: [TYPE_LABELS[d.type], d.mainRef].filter(Boolean).join(" · "),
+        icon: <FileText className="size-5 text-muted" aria-hidden="true" />,
+      });
+    }
+    list.push({
+      key: "volltext",
+      href: `/archiv?q=${encodeURIComponent(q)}`,
+      label: `„${q}“ im Text aller Dokumente suchen`,
+      hint: "Volltext",
+      icon: <TextSearch className="size-5 text-muted" aria-hidden="true" />,
+    });
+    return [...list, ...areas];
+  }, [query, hits]);
 
   if (!open) return null;
 
@@ -58,6 +113,7 @@ export function CommandPalette() {
     setOpen(false);
     router.push(href);
   };
+  const active = Math.min(index, entries.length - 1);
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-[12vh]" role="dialog" aria-modal="true" aria-label="Suche">
@@ -78,41 +134,42 @@ export function CommandPalette() {
               if (e.key === "Escape") setOpen(false);
               if (e.key === "ArrowDown") {
                 e.preventDefault();
-                setIndex((i) => Math.min(i + 1, results.length - 1));
+                setIndex((i) => Math.min(i + 1, entries.length - 1));
               }
               if (e.key === "ArrowUp") {
                 e.preventDefault();
                 setIndex((i) => Math.max(i - 1, 0));
               }
-              if (e.key === "Enter" && results[index]) go(results[index].href);
+              if (e.key === "Enter" && entries[active]) go(entries[active].href);
             }}
-            placeholder="Wohin? Bereich suchen …"
+            placeholder="Titel, Bibelstelle oder Bereich …"
             className="min-h-14 flex-1 bg-transparent text-base outline-none placeholder:text-muted"
             role="combobox"
             aria-expanded="true"
             aria-controls="cmdk-list"
-            aria-activedescendant={results[index] ? `cmdk-${index}` : undefined}
+            aria-activedescendant={entries[active] ? `cmdk-${active}` : undefined}
           />
           <kbd className="rounded border border-border px-1.5 py-0.5 text-xs text-muted">Esc</kbd>
         </div>
-        <ul id="cmdk-list" role="listbox" className="max-h-80 overflow-y-auto p-2">
-          {results.length === 0 && <li className="px-3 py-6 text-center text-sm text-muted">Kein Bereich gefunden. Dokumente werden ab Phase 2 durchsucht.</li>}
-          {results.map((entry, i) => (
-            <li key={entry.href} id={`cmdk-${i}`} role="option" aria-selected={i === index}>
+        <ul id="cmdk-list" role="listbox" className="max-h-96 overflow-y-auto p-2">
+          {entries.map((entry, i) => (
+            <li key={entry.key} id={`cmdk-${i}`} role="option" aria-selected={i === active}>
               <button
                 type="button"
                 onMouseEnter={() => setIndex(i)}
                 onClick={() => go(entry.href)}
-                className={`flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left ${i === index ? "bg-accent-soft" : ""}`}
+                className={`flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-1.5 text-left ${i === active ? "bg-accent-soft" : ""}`}
               >
-                <NavIcon name={entry.icon} className="size-5 text-muted" />
-                <span className="flex-1">{entry.label}</span>
-                {i === index && <CornerDownLeft className="size-4 text-muted" aria-hidden="true" />}
+                {entry.icon}
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate">{entry.label}</span>
+                  {entry.hint && <span className="truncate text-xs text-muted">{entry.hint}</span>}
+                </span>
+                {i === active && <CornerDownLeft className="size-4 shrink-0 text-muted" aria-hidden="true" />}
               </button>
             </li>
           ))}
         </ul>
-        <p className="border-t border-border px-4 py-2.5 text-xs text-muted">Bald hier: Predigten, Bibelstellen und Themen durchsuchen.</p>
       </div>
     </div>
   );

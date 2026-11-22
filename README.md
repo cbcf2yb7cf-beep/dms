@@ -11,7 +11,7 @@ Vollständiger Plan: [docs/PLAN.md](docs/PLAN.md).
 | Phase | Inhalt | Status |
 |---|---|---|
 | 1 | Grundgerüst, Design, Login + 2FA, Dashboard, ausklappbare Navigation, ⌘K | ✅ |
-| 2 | Archiv & Editor, Bibelstellen-Erkennung | offen |
+| 2 | Archiv & Editor (Tiptap), Versionen, Papierkorb, Bibelstellen-Erkennung, Filter, ⌘K-Dokumentsuche | ✅ |
 | 3 | Import (DOCX, PDF/OCR, PPTX, ältere Formate) | offen |
 | 4 | Bibelzentrum (freie Übersetzungen, Konkordanz, Strong) | offen |
 | 5 | Suche & Themennetz | offen |

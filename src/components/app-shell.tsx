@@ -81,7 +81,7 @@ export function AppShell({
     <div className="flex min-h-dvh">
       {/* Desktop: ausklappbare Seitenleiste */}
       <aside
-        className={`sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-border bg-surface/60 transition-[width] duration-200 md:flex ${collapsed ? "w-[76px]" : "w-64"}`}
+        className={`sticky top-0 hidden h-dvh shrink-0 print:!hidden flex-col border-r border-border bg-surface/60 transition-[width] duration-200 md:flex ${collapsed ? "w-[76px]" : "w-64"}`}
       >
         <div className={`flex items-center gap-2 px-4 pt-5 pb-4 ${collapsed ? "flex-col" : "justify-between"}`}>
           <Link href="/" className="flex min-h-11 items-center gap-2.5 rounded-lg px-1" aria-label="DMS – zum Dashboard">
@@ -124,7 +124,7 @@ export function AppShell({
 
       {/* Mobil: Kopfzeile + Schublade */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-bg/90 px-3 py-2 backdrop-blur md:hidden">
+        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-bg/90 px-3 py-2 backdrop-blur md:hidden print:hidden">
           <button type="button" onClick={() => setMobileOpen(true)} className="inline-flex size-11 items-center justify-center rounded-lg hover:bg-surface-2" aria-label="Navigation öffnen" aria-expanded={mobileOpen}>
             <Menu className="size-6" aria-hidden="true" />
           </button>
