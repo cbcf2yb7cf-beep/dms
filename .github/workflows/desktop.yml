@@ -2,6 +2,7 @@ name: Mac-App (DMG)
 
 # Baut DMS als Mac-App für Apple-Chips (M1–M4).
 # Start: Tag "desktop-v1.2.3" pushen (erstellt ein Release mit DMG) oder manuell unter "Actions".
+# Bei Fehlern stehen die letzten Zeilen jedes Schritts in der Zusammenfassung des Laufs.
 on:
   push:
     tags: ["desktop-v*"]
@@ -10,10 +11,17 @@ on:
 permissions:
   contents: write
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   dmg:
     runs-on: macos-15 # Apple Silicon (arm64)
     timeout-minutes: 40
+    env:
+      LOGS: ${{ github.workspace }}/.ci-logs
+      NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v5
 
@@ -21,37 +29,48 @@ jobs:
         with:
           node-version: 22
 
-      - name: Abhängigkeiten (Web-App)
-        run: npm ci || npm install --no-audit --no-fund
+      - name: 1 Abhängigkeiten (Web-App)
+        run: |
+          mkdir -p "$LOGS"
+          set -o pipefail
+          { node -v; npm -v; sw_vers; uname -m; npm ci --no-audit --no-fund || npm install --no-audit --no-fund; } 2>&1 | tee "$LOGS/1-abhaengigkeiten.txt"
 
-      - name: Tests
-        run: npx vitest run
+      - name: 2 Tests
+        run: |
+          set -o pipefail
+          npx vitest run 2>&1 | tee "$LOGS/2-tests.txt"
 
-      - name: Web-App als eigenständigen Server bauen
-        run: npm run build
-        env:
-          DMS_DESKTOP: "1"
-          NEXT_TELEMETRY_DISABLED: "1"
+      - name: 3 Web-App als eigenständigen Server bauen
+        run: |
+          set -o pipefail
+          DMS_DESKTOP=1 npm run build 2>&1 | tee "$LOGS/3-next-build.txt"
 
-      - name: Abhängigkeiten (Mac-Hülle)
+      - name: 4 Abhängigkeiten (Mac-Hülle)
         working-directory: desktop
-        run: npm ci || npm install --no-audit --no-fund
+        run: |
+          set -o pipefail
+          { npm ci --no-audit --no-fund || npm install --no-audit --no-fund; } 2>&1 | tee "$LOGS/4-huelle.txt"
 
-      - name: Version aus dem Tag übernehmen
+      - name: 5 Version aus dem Tag übernehmen
         if: startsWith(github.ref, 'refs/tags/desktop-v')
         working-directory: desktop
         run: npm pkg set version="${GITHUB_REF_NAME#desktop-v}"
 
-      - name: Server-Kopie vorbereiten
-        run: node desktop/prepare.mjs
+      - name: 6 Server-Kopie vorbereiten
+        run: |
+          set -o pipefail
+          node desktop/prepare.mjs 2>&1 | tee "$LOGS/6-prepare.txt"
 
-      - name: App und DMG bauen
+      - name: 7 App und DMG bauen
         working-directory: desktop
-        run: npx electron-builder --mac dmg --arm64 --publish never
+        run: |
+          set -o pipefail
+          npx electron-builder --mac dmg --arm64 --publish never 2>&1 | tee "$LOGS/7-electron-builder.txt"
 
-      - name: Probelauf der fertigen App
+      - name: 8 Probelauf der fertigen App
         run: |
           set -euo pipefail
+          exec > >(tee "$LOGS/8-probelauf.txt") 2>&1
           trap 'echo "--- Server-Protokoll ---"; cat server.log 2>/dev/null || true' EXIT
           ls desktop/dist
           APP="desktop/dist/mac-arm64/DMS.app"
@@ -70,10 +89,24 @@ jobs:
           check / "-b dms-local-token=probe" 200
           check /archiv "-b dms-local-token=probe" 200
           check /einstellungen "-b dms-local-token=probe" 200
-          check /api/suche?q=test "-b dms-local-token=probe" 200
+          check "/api/suche?q=test" "-b dms-local-token=probe" 200
           curl -s -b dms-local-token=probe http://127.0.0.1:4123/ | grep -q "Probe" && echo "Begrüßung ok"
           test -f "$DATA/app.db"
           kill $PID
+
+      - name: Fehlerbericht in die Zusammenfassung
+        if: failure()
+        run: |
+          {
+            echo "## Fehlerbericht"
+            echo "Letzte Zeilen der Schritte (der zuletzt aufgeführte ist meist der fehlgeschlagene):"
+            for f in $(ls "$LOGS"/*.txt 2>/dev/null | sort); do
+              echo "### $(basename "$f" .txt)"
+              echo '```'
+              tail -n 40 "$f" | cut -c1-300
+              echo '```'
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v5
         with:
