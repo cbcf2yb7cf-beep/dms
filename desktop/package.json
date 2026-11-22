@@ -26,16 +26,6 @@
       "main.js",
       "package.json"
     ],
-    "extraResources": [
-      {
-        "from": "../.next/standalone",
-        "to": "server",
-        "filter": [
-          "**/*",
-          "!**/*.map"
-        ]
-      }
-    ],
     "npmRebuild": false,
     "mac": {
       "target": [

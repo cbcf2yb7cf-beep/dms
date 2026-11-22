@@ -76,6 +76,7 @@ jobs:
           APP="desktop/dist/mac-arm64/DMS.app"
           codesign --verify --deep --strict --verbose=2 "$APP"
           RES="$APP/Contents/Resources/server"
+          echo "Inhalt Resources/server:"; ls -la "$RES" || true; ls "$RES/node_modules" || true
           test -f "$RES/node_modules/better-sqlite3/prebuilds/darwin-arm64.node"
           DATA=$(mktemp -d)
           ELECTRON_RUN_AS_NODE=1 PORT=4123 HOSTNAME=127.0.0.1 NODE_ENV=production \
