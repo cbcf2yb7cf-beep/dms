@@ -4,7 +4,8 @@ Private Web-App zum Verwalten von Predigten und Vorträgen, mit freier Bibel
 (Konkordanz, Grundtext), Präsentationen und optionalem Claude-Assistenten.
 Vollständiger Plan: [docs/PLAN.md](docs/PLAN.md).
 
-**Live (Vorschau):** https://dms.hausundrasen.de
+**Genutzt wird DMS als Mac-App** (siehe unten). Die Server-Version (Docker/Traefik) bleibt im Code,
+ist aber seit 2026-11-22 nicht mehr in Betrieb (dms.hausundrasen.de abgeschaltet).
 
 ## Stand
 
@@ -28,7 +29,7 @@ Vollständiger Plan: [docs/PLAN.md](docs/PLAN.md).
 - Docker hinter Traefik (`dynamic.yml`), Daten im Volume `dms_data` → `/data/app.db`
   (Endung `.db`, damit das restic-Server-Backup die Datei konsistent sichert)
 
-## Betrieb
+## Server-Betrieb (optional, derzeit nicht genutzt)
 
 ```bash
 cp .env.example .env   # Werte setzen

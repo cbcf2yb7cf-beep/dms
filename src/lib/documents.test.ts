@@ -68,6 +68,16 @@ describe("Dokumente", () => {
     expect(topicCounts().find((t) => t.name === "Glaube")?.n).toBeGreaterThanOrEqual(2);
   });
 
+  it("Konflikt auch bei Speichern in derselben Millisekunde", () => {
+    const id = createDocument("notiz");
+    const base = getDocument(id)!.updatedAt.getTime();
+    // Erster Stand gilt mit dem geladenen Zeitstempel – egal, wie schnell gespeichert wird.
+    expect(saveDocument(id, input({ title: "Neu" }), base).ok).toBe(true);
+    expect(getDocument(id)!.updatedAt.getTime()).toBeGreaterThan(base);
+    expect(saveDocument(id, input({ title: "Alt" }), base)).toMatchObject({ ok: false, reason: "conflict" });
+    expect(getDocument(id)!.title).toBe("Neu");
+  });
+
   it("überschreibt keinen neueren Stand (Konflikt)", () => {
     const id = createDocument("notiz");
     const base = getDocument(id)!.updatedAt.getTime();

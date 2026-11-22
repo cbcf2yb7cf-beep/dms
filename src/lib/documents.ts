@@ -125,6 +125,9 @@ export function saveDocument(id: string, input: SaveInput, baseUpdatedAt: number
     if (!opts.force && row.updatedAt.getTime() > baseUpdatedAt) {
       return { ok: false, reason: "conflict", updatedAt: row.updatedAt.getTime() };
     }
+    // Zeitstempel muss streng steigen, sonst erkennt der Konfliktschutz zwei Speicherungen
+    // in derselben Millisekunde nicht (auf schnellen Rechnern tatsächlich passiert).
+    const stamp = new Date(Math.max(now.getTime(), row.updatedAt.getTime() + 1));
 
     tx.update(documents)
       .set({
@@ -141,7 +144,7 @@ export function saveDocument(id: string, input: SaveInput, baseUpdatedAt: number
         contentJson: json,
         plainText: text,
         wordCount: words,
-        updatedAt: now,
+        updatedAt: stamp,
       })
       .where(eq(documents.id, id))
       .run();
@@ -186,7 +189,7 @@ export function saveDocument(id: string, input: SaveInput, baseUpdatedAt: number
       pruneVersions(tx, id);
     }
 
-    return { ok: true, updatedAt: now.getTime(), wordCount: words, refs: [] };
+    return { ok: true, updatedAt: stamp.getTime(), wordCount: words, refs: [] };
   });
 }
 
