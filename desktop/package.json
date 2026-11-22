@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "DMS – Predigten, Vorträge und Bibel als Mac-App",
+  "author": "Sascha Wiebe",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
