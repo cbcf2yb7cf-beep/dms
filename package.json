@@ -19,13 +19,18 @@
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^13.2.0",
     "drizzle-orm": "^0.45.4",
+    "jszip": "^3.10.2",
     "lucide-react": "^1.77.0",
+    "mammoth": "^1.13.0",
+    "node-html-parser": "^9.0.7",
     "next": "16.4.6",
     "next-auth": "5.0.0-beta.32",
     "qrcode": "^1.5.4",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "server-only": "^0.0.1",
+    "unpdf": "^2.2.1",
+    "word-extractor": "^1.0.4",
     "zod": "^4.6.7"
   },
   "devDependencies": {

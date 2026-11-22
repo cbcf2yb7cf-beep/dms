@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, BookOpen, ShieldAlert, ShieldCheck } from "lucide-react";
+import { ArrowRight, BookOpen, ShieldAlert, ShieldCheck, Upload } from "lucide-react";
 import { NAV } from "@/lib/nav";
 import { NavIcon } from "@/components/nav-icon";
 import { PageHeader } from "@/components/page-header";
@@ -50,6 +50,9 @@ export default async function DashboardPage() {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-10 px-5 py-8 sm:px-10 sm:py-10">
       <PageHeader eyebrow={today} title={`${greeting(hour)}, ${firstName}`}>
+        <Link href="/archiv/import" className="btn-secondary">
+          <Upload className="size-4" aria-hidden="true" /> Importieren
+        </Link>
         <NewDocumentMenu />
       </PageHeader>
 
@@ -87,7 +90,7 @@ export default async function DashboardPage() {
           ) : (
             <div className="card flex flex-1 flex-col items-start justify-center gap-3 py-10">
               <p className="font-serif text-2xl font-semibold">Noch keine Dokumente</p>
-              <p className="max-w-lg text-ink-2">Leg deine erste Predigt an – Einleitung, Hauptteil und Schluss sind schon vorbereitet. Bibelstellen im Text werden automatisch erkannt.</p>
+              <p className="max-w-lg text-ink-2">Leg deine erste Predigt an – oder übernimm deinen vorhandenen Ordner mit Word-, PowerPoint- und PDF-Dateien über „Importieren“.</p>
             </div>
           )}
         </div>

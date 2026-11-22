@@ -64,9 +64,21 @@ const validChapter = (book: Book, c: number) => c >= 1 && c <= book.chapters;
  * Ergebnis ohne Duplikate, in Fundreihenfolge.
  */
 export function parseRefs(text: string): BibleRef[] {
+  return scanRefs(text).refs;
+}
+
+/** Wo im Text stehen Bibelstellen? Je Buchangabe ein Bereich [start, end) – z. B. um Titel und Stelle zu trennen. */
+export function findRefSpans(text: string): { start: number; end: number }[] {
+  return scanRefs(text).spans;
+}
+
+function scanRefs(text: string): { refs: BibleRef[]; spans: { start: number; end: number }[] } {
+  const spans: { start: number; end: number }[] = [];
   const out: BibleRef[] = [];
   const seen = new Set<string>();
+  let hit = false; // in der aktuellen Buchangabe eine gültige Stelle erkannt (auch wenn doppelt)
   const push = (r: BibleRef) => {
+    if (r.end >= r.start) hit = true;
     const key = `${r.start}-${r.end}`;
     if (r.end < r.start || seen.has(key)) return;
     seen.add(key);
@@ -79,6 +91,7 @@ export function parseRefs(text: string): BibleRef[] {
     if (!book) continue;
     let pos = m.index + m[0].length;
     let first = true;
+    hit = false;
 
     while (true) {
       const c = match(CHAPTER, text, pos);
@@ -164,9 +177,10 @@ export function parseRefs(text: string): BibleRef[] {
       pos = afterNext;
       first = false;
     }
+    if (hit) spans.push({ start: m.index, end: pos });
     BOOK_RE.lastIndex = Math.max(BOOK_RE.lastIndex, pos);
   }
-  return out;
+  return { refs: out, spans };
 }
 
 /** Eine einzelne Eingabe wie "Röm 8" für Suchfelder; undefined, wenn keine Stelle erkannt. */

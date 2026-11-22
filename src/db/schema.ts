@@ -91,3 +91,40 @@ export const bibleRefs = sqliteTable("bible_refs", {
   endId: integer("end_id").notNull(),
   source: text("source", { enum: ["main", "block", "text"] }).notNull(),
 });
+
+// ── Phase 3: Import ─────────────────────────────────────────────────────────
+
+export const documentFiles = sqliteTable("document_files", {
+  id: text("id").primaryKey(),
+  documentId: text("document_id"),
+  sha256: text("sha256").notNull(),
+  fileName: text("file_name").notNull(),
+  relPath: text("rel_path").notNull().default(""),
+  ext: text("ext").notNull(),
+  size: integer("size").notNull(),
+  importJobId: text("import_job_id"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+});
+export type DocumentFile = typeof documentFiles.$inferSelect;
+
+export const importJobs = sqliteTable("import_jobs", {
+  id: text("id").primaryKey(),
+  label: text("label").notNull(),
+  total: integer("total").notNull().default(0),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  finishedAt: integer("finished_at", { mode: "timestamp_ms" }),
+  undoneAt: integer("undone_at", { mode: "timestamp_ms" }),
+});
+
+export const IMPORT_STATUS = ["importiert", "doppelt", "uebersprungen", "fehler"] as const;
+export type ImportStatus = (typeof IMPORT_STATUS)[number];
+
+export const importItems = sqliteTable("import_items", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  jobId: text("job_id").notNull(),
+  path: text("path").notNull(),
+  status: text("status", { enum: IMPORT_STATUS }).notNull(),
+  message: text("message").notNull().default(""),
+  documentId: text("document_id"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+});

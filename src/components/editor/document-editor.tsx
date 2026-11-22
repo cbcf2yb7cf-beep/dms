@@ -43,11 +43,12 @@ export type EditorDoc = {
   tags: string[];
   refs: { label: string; source: "main" | "block" | "text" }[];
   updatedAt: number;
+  files: { id: string; fileName: string; ext: string; sha256: string; size: number }[];
 };
 
 export type Facets = { topics: string[]; tags: string[]; series: string[]; occasions: string[]; places: string[] };
 
-type Meta = Omit<EditorDoc, "id" | "contentJson" | "refs" | "updatedAt" | "archived">;
+type Meta = Omit<EditorDoc, "id" | "contentJson" | "refs" | "updatedAt" | "archived" | "files">;
 type SaveState = { kind: "saved"; at: number } | { kind: "dirty" } | { kind: "saving" } | { kind: "error"; message: string } | { kind: "conflict"; serverAt: number };
 
 const AUTOSAVE_MS = 1500;
@@ -396,6 +397,7 @@ export function DocumentEditor({ doc, facets }: { doc: EditorDoc; facets: Facets
             <label htmlFor="m-summary" className="label">Kurzbeschreibung</label>
             <textarea id="m-summary" value={meta.summary} onChange={(e) => updateMeta("summary", e.target.value)} rows={4} className="input py-2" />
           </div>
+          {doc.files.length > 0 && <OriginalFiles files={doc.files} />}
         </aside>
       </div>
     </div>
@@ -439,5 +441,43 @@ function SaveIndicator({ state, words, onRetry }: { state: SaveState; words: num
     <span className="mr-2 hidden text-sm text-muted sm:inline" aria-live="polite">
       {text} · {wordsText}
     </span>
+  );
+}
+
+type DesktopBridge = { openOriginal: (f: { sha256: string; ext: string; fileName: string }) => Promise<string> };
+
+/** Importierte Originaldatei(en): in der Mac-App direkt öffnen, sonst herunterladen. */
+function OriginalFiles({ files }: { files: EditorDoc["files"] }) {
+  const [message, setMessage] = useState<string | null>(null);
+  // Erst nach dem Laden prüfen, ob wir in der Mac-App laufen (sonst unterscheiden sich Server- und Browser-HTML).
+  const [bridge, setBridge] = useState<DesktopBridge | undefined>(undefined);
+  useEffect(() => setBridge((window as unknown as { dmsDesktop?: DesktopBridge }).dmsDesktop), []);
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="label mb-0">Originaldatei</span>
+      {files.map((f) => (
+        <div key={f.id} className="flex flex-col gap-1 rounded-lg border border-border bg-bg px-3 py-2">
+          <span className="text-sm break-all">{f.fileName}</span>
+          <span className="flex flex-wrap gap-3 text-sm">
+            {bridge && (
+              <button
+                type="button"
+                className="text-accent underline"
+                onClick={async () => {
+                  const err = await bridge.openOriginal({ sha256: f.sha256, ext: f.ext, fileName: f.fileName });
+                  setMessage(err || null);
+                }}
+              >
+                Öffnen
+              </button>
+            )}
+            <a href={`/api/original/${f.id}`}>Herunterladen</a>
+            <span className="text-muted">{(f.size / 1024).toLocaleString("de-DE", { maximumFractionDigits: 0 })} KB</span>
+          </span>
+        </div>
+      ))}
+      {message && <p className="text-xs text-danger">{message}</p>}
+      <p className="text-xs text-muted">Unverändert gespeichert. Änderungen in Word wirken sich nicht auf DMS aus.</p>
+    </div>
   );
 }

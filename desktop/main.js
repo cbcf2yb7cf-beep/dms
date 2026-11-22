@@ -1,6 +1,6 @@
 // DMS als Mac-App: startet den Next.js-Server (aus ../.next/standalone bzw. Resources/server)
 // nur auf 127.0.0.1 und öffnet ihn in einem eigenen Fenster. Daten: ~/Library/Application Support/DMS
-const { app, BrowserWindow, Menu, dialog, session, shell, utilityProcess } = require("electron");
+const { app, BrowserWindow, Menu, dialog, ipcMain, session, shell, utilityProcess } = require("electron");
 const { execFileSync } = require("node:child_process");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
@@ -101,7 +101,7 @@ function createWindow() {
     title: "DMS",
     backgroundColor: "#f6f1e7",
     show: false,
-    webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false, spellcheck: true },
+    webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false, spellcheck: true, preload: path.join(__dirname, "preload.js") },
   });
   win.once("ready-to-show", () => win.show());
 
@@ -196,6 +196,27 @@ function buildMenu() {
     ]),
   );
 }
+
+// Originaldatei öffnen: Kopie mit Originalnamen im Temp-Ordner, schreibgeschützt – die abgelegte Fassung bleibt unverändert.
+ipcMain.handle("dms:open-original", async (event, file) => {
+  if (!baseUrl || !event.senderFrame?.url.startsWith(`${baseUrl}/`)) return "Nicht erlaubt.";
+  const { sha256, ext, fileName } = file ?? {};
+  if (!/^[0-9a-f]{64}$/.test(String(sha256)) || !/^[a-z0-9]{1,5}$/.test(String(ext))) return "Ungültige Datei.";
+  const source = path.join(dataDir, "originals", `${sha256}.${ext}`);
+  if (!fs.existsSync(source)) return "Die Originaldatei fehlt im Datenordner.";
+  const dir = path.join(app.getPath("temp"), "DMS-Originale");
+  fs.mkdirSync(dir, { recursive: true });
+  const safeName = path.basename(String(fileName || `original.${ext}`)).replace(/[/:\\]/g, "_");
+  const target = path.join(dir, safeName);
+  try {
+    fs.rmSync(target, { force: true });
+    fs.copyFileSync(source, target);
+    fs.chmodSync(target, 0o444);
+  } catch (e) {
+    return `Kopie fehlgeschlagen: ${e.message}`;
+  }
+  return shell.openPath(target); // "" = ok, sonst Fehlermeldung
+});
 
 app.on("second-instance", () => {
   if (win) {

@@ -14,7 +14,7 @@ ist aber seit 2026-11-22 nicht mehr in Betrieb (dms.hausundrasen.de abgeschaltet
 | 1 | Grundgerüst, Design, Login + 2FA, Dashboard, ausklappbare Navigation, ⌘K | ✅ |
 | – | Mac-App (DMG) über GitHub Actions | ✅ |
 | 2 | Archiv & Editor (Tiptap), Versionen, Papierkorb, Bibelstellen-Erkennung, Filter, ⌘K-Dokumentsuche | ✅ |
-| 3 | Import (DOCX, PDF/OCR, PPTX, ältere Formate) | offen |
+| 3 | Import: Ordner/Dateien (DOCX, DOCM, DOC, RTF, TXT, PPTX, PDF), Angaben aus Dateinamen, Originale, Bericht, Rückgängig | ✅ (OCR für Scans offen) |
 | 4 | Bibelzentrum (freie Übersetzungen, Konkordanz, Strong) | offen |
 | 5 | Suche & Themennetz | offen |
 | 6 | Präsentationen + PWA/offline | offen |

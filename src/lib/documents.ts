@@ -316,7 +316,7 @@ export function listDocuments(filter: ListFilter = {}): { items: ListItem[]; ste
     for (const word of filter.q.trim().split(/\s+/).slice(0, 8)) {
       const p = likeEscape(word);
       where.push(
-        sql`(${documents.title} LIKE ${p} ESCAPE '\\' OR ${documents.plainText} LIKE ${p} ESCAPE '\\' OR ${documents.summary} LIKE ${p} ESCAPE '\\' OR ${documents.series} LIKE ${p} ESCAPE '\\' OR ${documents.mainRef} LIKE ${p} ESCAPE '\\')`,
+        sql`(${documents.title} LIKE ${p} ESCAPE '\\' OR ${documents.plainText} LIKE ${p} ESCAPE '\\' OR ${documents.summary} LIKE ${p} ESCAPE '\\' OR ${documents.series} LIKE ${p} ESCAPE '\\' OR ${documents.mainRef} LIKE ${p} ESCAPE '\\' OR ${documents.place} LIKE ${p} ESCAPE '\\' OR ${documents.occasion} LIKE ${p} ESCAPE '\\')`,
       );
     }
   }

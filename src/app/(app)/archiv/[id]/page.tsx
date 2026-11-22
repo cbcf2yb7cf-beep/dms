@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { DocumentEditor } from "@/components/editor/document-editor";
 import { facets, getDocument } from "@/lib/documents";
 import { requireUser } from "@/lib/session";
+import { filesForDocument } from "@/lib/import";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const doc = getDocument((await params).id);
@@ -35,6 +36,7 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
         tags: doc.tags,
         refs: doc.refs.map((r) => ({ label: r.label, source: r.source })),
         updatedAt: doc.updatedAt.getTime(),
+        files: filesForDocument(doc.id).map((f) => ({ id: f.id, fileName: f.fileName, ext: f.ext, sha256: f.sha256, size: f.size })),
       }}
       facets={{ topics: f.topics, tags: f.tags, series: f.series, occasions: f.occasions, places: f.places }}
     />

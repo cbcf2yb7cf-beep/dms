@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, Search, X } from "lucide-react";
+import { BookOpen, Search, Upload, X } from "lucide-react";
 import { DOC_STATUS, DOC_TYPES, type DocStatus, type DocType } from "@/db/schema";
 import { facets, listDocuments, type ListFilter } from "@/lib/documents";
 import { STATUS_OPTIONS, TYPE_OPTIONS } from "@/lib/doc-meta";
@@ -45,6 +45,9 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-7 px-5 py-8 sm:px-10 sm:py-10">
       <PageHeader title="Archiv">
+        <Link href="/archiv/import" className="btn-secondary">
+          <Upload className="size-4" aria-hidden="true" /> Importieren
+        </Link>
         <NewDocumentMenu />
       </PageHeader>
 
@@ -123,7 +126,7 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
               ? "Versuch es mit weniger Filtern oder einem anderen Suchbegriff."
               : view === "archiv"
                 ? "Archivierte Dokumente verschwinden aus der normalen Liste, bleiben aber hier und in der Suche erhalten."
-                : "Leg deine erste Predigt an. Der Import vorhandener Word- und PDF-Dateien folgt im nächsten Schritt."}
+                : "Leg deine erste Predigt an – oder übernimm vorhandene Word-, PowerPoint- und PDF-Dateien über „Importieren“."}
           </p>
           {!filtered && view === "aktiv" && <NewDocumentMenu />}
         </div>
