@@ -1,0 +1,31 @@
+services:
+  app:
+    mem_limit: 768m
+    memswap_limit: 1536m
+    pids_limit: 256
+    image: dms-app:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dms_app
+    restart: unless-stopped
+    environment:
+      # Endung .db: das Server-Backup (restic) sichert *.db konsistent mit.
+      DATABASE_PATH: /data/app.db
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL}
+      ADMIN_NAME: ${ADMIN_NAME}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    volumes:
+      - dms_data:/data
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true
+
+volumes:
+  dms_data:
