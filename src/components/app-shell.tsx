@@ -22,11 +22,14 @@ export function AppShell({
   initialCollapsed,
   initialDark,
   userName,
+  local,
   children,
 }: {
   initialCollapsed: boolean;
   initialDark: boolean;
   userName: string;
+  /** Mac-App: kein Abmelden. */
+  local: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -67,12 +70,14 @@ export function AppShell({
           {dark ? <Sun className="size-5 shrink-0" aria-hidden="true" strokeWidth={1.75} /> : <Moon className="size-5 shrink-0" aria-hidden="true" strokeWidth={1.75} />}
           {!compact && <span>{dark ? "Helle Ansicht" : "Dunkle Ansicht"}</span>}
         </button>
+        {!local && (
         <form action={logout}>
           <button type="submit" className={navItemClass(false, compact)} aria-label={compact ? "Abmelden" : undefined} title={compact ? `Abmelden (${userName})` : undefined}>
             <LogOut className="size-5 shrink-0" aria-hidden="true" strokeWidth={1.75} />
             {!compact && <span className="truncate">Abmelden <span className="text-muted">· {userName}</span></span>}
           </button>
         </form>
+        )}
       </div>
     </>
   );

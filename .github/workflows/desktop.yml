@@ -1,0 +1,95 @@
+name: Mac-App (DMG)
+
+# Baut DMS als Mac-App für Apple-Chips (M1–M4).
+# Start: Tag "desktop-v1.2.3" pushen (erstellt ein Release mit DMG) oder manuell unter "Actions".
+on:
+  push:
+    tags: ["desktop-v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  dmg:
+    runs-on: macos-15 # Apple Silicon (arm64)
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Abhängigkeiten (Web-App)
+        run: npm ci || npm install --no-audit --no-fund
+
+      - name: Tests
+        run: npx vitest run
+
+      - name: Web-App als eigenständigen Server bauen
+        run: npm run build
+        env:
+          DMS_DESKTOP: "1"
+          NEXT_TELEMETRY_DISABLED: "1"
+
+      - name: Abhängigkeiten (Mac-Hülle)
+        working-directory: desktop
+        run: npm ci || npm install --no-audit --no-fund
+
+      - name: Version aus dem Tag übernehmen
+        if: startsWith(github.ref, 'refs/tags/desktop-v')
+        working-directory: desktop
+        run: npm pkg set version="${GITHUB_REF_NAME#desktop-v}"
+
+      - name: Server-Kopie vorbereiten
+        run: node desktop/prepare.mjs
+
+      - name: App und DMG bauen
+        working-directory: desktop
+        run: npx electron-builder --mac dmg --arm64 --publish never
+
+      - name: Probelauf der fertigen App
+        run: |
+          set -euo pipefail
+          APP="desktop/dist/mac-arm64/DMS.app"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          RES="$APP/Contents/Resources/server"
+          test -f "$RES/node_modules/better-sqlite3/prebuilds/darwin-arm64.node"
+          DATA=$(mktemp -d)
+          ELECTRON_RUN_AS_NODE=1 PORT=4123 HOSTNAME=127.0.0.1 NODE_ENV=production \
+            DATABASE_PATH="$DATA/app.db" DMS_DATA_DIR="$DATA" DMS_LOCAL_TOKEN=probe DMS_USER_NAME="Probe" \
+            NEXTAUTH_SECRET=probe NEXTAUTH_URL=http://127.0.0.1:4123 \
+            "$APP/Contents/MacOS/DMS" "$RES/server.js" > server.log 2>&1 &
+          PID=$!
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:4123/robots.txt >/dev/null && break; sleep 1; done
+          check() { code=$(curl -s -o /dev/null -w '%{http_code}' $2 "http://127.0.0.1:4123$1"); echo "$1 ${2:+(mit Schlüssel)} → $code"; [ "$code" = "$3" ]; }
+          check / "" 403
+          check / "-b dms-local-token=probe" 200
+          check /archiv "-b dms-local-token=probe" 200
+          check /einstellungen "-b dms-local-token=probe" 200
+          check /api/suche?q=test "-b dms-local-token=probe" 200
+          curl -s -b dms-local-token=probe http://127.0.0.1:4123/ | grep -q "Probe" && echo "Begrüßung ok"
+          test -f "$DATA/app.db"
+          kill $PID
+          cat server.log
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DMS-dmg
+          path: desktop/dist/*.dmg
+          retention-days: 30
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/desktop-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: desktop/dist/*.dmg
+          body: |
+            DMS als Mac-App für Apple-Chips (M1–M4).
+
+            **Installieren:** DMG öffnen, DMS in „Programme“ ziehen.
+            **Erster Start:** macOS warnt, weil die App nicht bei Apple registriert ist.
+            Dann *Systemeinstellungen → Datenschutz & Sicherheit → „Dennoch öffnen“* wählen. Danach startet DMS normal.
+
+            Deine Daten liegen in `~/Library/Application Support/DMS` und bleiben bei Updates erhalten.

@@ -11,6 +11,7 @@ Vollständiger Plan: [docs/PLAN.md](docs/PLAN.md).
 | Phase | Inhalt | Status |
 |---|---|---|
 | 1 | Grundgerüst, Design, Login + 2FA, Dashboard, ausklappbare Navigation, ⌘K | ✅ |
+| – | Mac-App (DMG) über GitHub Actions | ✅ |
 | 2 | Archiv & Editor (Tiptap), Versionen, Papierkorb, Bibelstellen-Erkennung, Filter, ⌘K-Dokumentsuche | ✅ |
 | 3 | Import (DOCX, PDF/OCR, PPTX, ältere Formate) | offen |
 | 4 | Bibelzentrum (freie Übersetzungen, Konkordanz, Strong) | offen |
@@ -42,3 +43,23 @@ docker run --rm -v "$PWD":/app -w /app node:22-alpine sh -c "npx tsc --noEmit &&
 
 `ADMIN_EMAIL`/`ADMIN_PASSWORD` legen nur beim allerersten Start den Benutzer an;
 danach Passwort in den Einstellungen ändern.
+
+## Mac-App (DMG)
+
+DMS gibt es zusätzlich als eigenständige Mac-App für Apple-Chips (M1–M4): ohne Server,
+ohne Internet, ohne Login. Daten liegen in `~/Library/Application Support/DMS`
+(`app.db`, später Originaldateien); sie bleiben bei Updates erhalten. Server-Version und
+Mac-App haben **getrennte** Datenbestände.
+
+- `desktop/main.js` – Electron-Hülle: startet den Next.js-Server (`output: "standalone"`,
+  gebaut mit `DMS_DESKTOP=1`) als Hilfsprozess nur auf `127.0.0.1` mit freiem Port und
+  öffnet ihn im App-Fenster.
+- Schutz: Pro Start ein zufälliger Schlüssel (`DMS_LOCAL_TOKEN`), den nur das App-Fenster
+  als Cookie bekommt; ohne ihn antwortet der Server mit 403 (`src/proxy.ts`). Kein Login nötig.
+- `better-sqlite3` nutzt Node-API mit mitgelieferten Binärdateien – läuft ohne Neukompilieren in Electron.
+- Gebaut wird auf GitHub Actions (`.github/workflows/desktop.yml`, macOS arm64) inkl. Probelauf
+  der fertigen App. Neue Version: Tag `desktop-vX.Y.Z` pushen → Release mit DMG.
+- Die App ist ad-hoc signiert (kein Apple-Entwicklerkonto): beim ersten Start
+  *Systemeinstellungen → Datenschutz & Sicherheit → „Dennoch öffnen“*.
+
+Lokal testen ohne DMG (auf einem Mac): `DMS_DESKTOP=1 npm run build && node desktop/prepare.mjs && cd desktop && npm install && npm start`.

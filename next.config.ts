@@ -4,6 +4,8 @@ const nextConfig: NextConfig = {
   // Native SQLite-Bindung nicht bündeln, sondern zur Laufzeit aus node_modules laden.
   serverExternalPackages: ["better-sqlite3"],
   poweredByHeader: false,
+  // Mac-App: eigenständiger Server (ohne Docker) für die Electron-Hülle, siehe desktop/.
+  output: process.env.DMS_DESKTOP ? "standalone" : undefined,
 };
 
 export default nextConfig;

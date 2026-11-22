@@ -9,6 +9,7 @@ import { NewDocumentMenu } from "@/components/new-document-menu";
 import { listDocuments, stats, topicCounts } from "@/lib/documents";
 import { requireUser } from "@/lib/session";
 import { verseOfDay } from "@/lib/verses";
+import { isLocal } from "@/lib/local";
 
 export const metadata = { title: "Dashboard" };
 
@@ -39,6 +40,7 @@ export default async function DashboardPage() {
   const today = new Intl.DateTimeFormat("de-DE", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Berlin" }).format(now);
   const verse = verseOfDay(now);
   const firstName = user.name.split(" ")[0];
+  const local = isLocal();
 
   const s = stats();
   const recent = listDocuments({ limit: 5 }).items;
@@ -53,7 +55,7 @@ export default async function DashboardPage() {
 
       <DashboardSearch />
 
-      {!user.totpEnabledAt && (
+      {!local && !user.totpEnabledAt && (
         <Link href="/einstellungen#zwei-faktor" className="flex items-center gap-4 rounded-2xl border border-border-strong bg-accent-soft px-5 py-4 text-ink hover:border-accent">
           <ShieldAlert className="size-6 shrink-0 text-accent" aria-hidden="true" />
           <span className="flex-1">
@@ -162,7 +164,7 @@ export default async function DashboardPage() {
         </ul>
       </section>
 
-      {user.totpEnabledAt && (
+      {!local && user.totpEnabledAt && (
         <p className="flex items-center gap-2 text-sm text-muted">
           <ShieldCheck className="size-4 text-ok" aria-hidden="true" /> Zwei-Faktor-Anmeldung aktiv
         </p>
