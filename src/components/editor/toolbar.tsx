@@ -81,7 +81,14 @@ export function Toolbar({ editor }: { editor: Editor }) {
         <Btn label="Nummerierung" active={s.ordered} onClick={() => c().toggleOrderedList().run()}><ListOrdered className={icon} aria-hidden="true" /></Btn>
         <Btn label="Zitat" active={s.quote} onClick={() => c().toggleBlockquote().run()}><Quote className={icon} aria-hidden="true" /></Btn>
         <Btn label="Bibelstelle" active={s.bible || bibleOpen} onClick={() => setBibleOpen((o) => !o)}><BookOpen className={icon} aria-hidden="true" /></Btn>
-        <Btn label="Notiz (nicht vorlesen)" active={s.note} onClick={() => c().toggleWrap("note").run()}><NotebookPen className={icon} aria-hidden="true" /></Btn>
+        <Btn
+          label="Notiz (nicht vorlesen)"
+          active={s.note}
+          onClick={() => {
+            if (s.note) c().lift("note").run();
+            else if (!c().wrapIn("note").run()) c().insertBlock("note").run(); // in Überschriften: neue Notiz darunter
+          }}
+        ><NotebookPen className={icon} aria-hidden="true" /></Btn>
         <Btn label="Trennlinie" onClick={() => c().setHorizontalRule().run()}><Minus className={icon} aria-hidden="true" /></Btn>
         <Sep />
         <Btn label="Rückgängig (⌘Z)" disabled={!s.canUndo} onClick={() => c().undo().run()}><Undo2 className={icon} aria-hidden="true" /></Btn>
@@ -93,9 +100,9 @@ export function Toolbar({ editor }: { editor: Editor }) {
           editing={s.bible}
           initial={s.bible ? s.bibleAttrs : {}}
           onCancel={() => setBibleOpen(false)}
-          onSubmit={(attrs) => {
+          onSubmit={({ text, ...attrs }) => {
             if (s.bible) c().updateAttributes("bibleBlock", attrs).run();
-            else c().toggleWrap("bibleBlock", attrs).run();
+            else c().insertBlock("bibleBlock", attrs, text).run();
             setBibleOpen(false);
           }}
           onRemove={
@@ -121,12 +128,13 @@ function BibleForm({
 }: {
   editing: boolean;
   initial: { reference?: string; translation?: string };
-  onSubmit: (attrs: { reference: string; translation: string }) => void;
+  onSubmit: (attrs: { reference: string; translation: string; text: string }) => void;
   onCancel: () => void;
   onRemove?: () => void;
 }) {
   const [reference, setReference] = useState(initial.reference ?? "");
   const [translation, setTranslation] = useState(initial.translation || "Luther 1912");
+  const [text, setText] = useState("");
   const parsed = reference.trim() ? parseRef(reference) : undefined;
 
   return (
@@ -134,14 +142,14 @@ function BibleForm({
       className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-surface-2 p-3"
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit({ reference: parsed ? formatRef(parsed) : reference.trim(), translation: translation.trim() });
+        onSubmit({ reference: parsed ? formatRef(parsed) : reference.trim(), translation: translation.trim(), text });
       }}
     >
       <div className="min-w-40 flex-1">
         <label htmlFor="bible-ref" className="label">Bibelstelle</label>
         <input id="bible-ref" autoFocus value={reference} onChange={(e) => setReference(e.target.value)} placeholder="z. B. Hebr 11,1-3" className="input bg-surface" required />
         <p className="mt-1 text-xs text-muted" aria-live="polite">
-          {reference.trim() ? (parsed ? `Erkannt: ${formatRef(parsed, "name")}` : "Nicht erkannt – wird so übernommen") : "Den Verstext fügst du im Block ein (ab Phase 4 automatisch)."}
+          {reference.trim() ? (parsed ? `Erkannt: ${formatRef(parsed, "name")}` : "Nicht erkannt – wird so übernommen") : "z. B. „Joh 3,16“ oder „Röm 8,28-30“"}
         </p>
       </div>
       <div className="min-w-40 flex-1">
@@ -152,9 +160,21 @@ function BibleForm({
             <option key={t} value={t} />
           ))}
         </datalist>
-        <p className="mt-1 text-xs text-transparent" aria-hidden="true">.</p>
       </div>
-      <div className="flex gap-2 pb-5">
+      {!editing && (
+        <div className="w-full">
+          <label htmlFor="bible-text" className="label">Verstext (optional)</label>
+          <textarea
+            id="bible-text"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={3}
+            placeholder="Vers hier einfügen – oder leer lassen und danach im Block schreiben. Ab Phase 4 kommt der Text automatisch aus der Bibel."
+            className="input bg-surface py-2 font-serif"
+          />
+        </div>
+      )}
+      <div className="flex flex-wrap gap-2">
         <button type="submit" className="btn-primary">{editing ? "Übernehmen" : "Einfügen"}</button>
         {onRemove && <button type="button" className="btn-secondary" onClick={onRemove}>Block lösen</button>}
         <button type="button" className="btn-secondary" onClick={onCancel}>Abbrechen</button>

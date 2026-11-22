@@ -1,7 +1,55 @@
-import { mergeAttributes, Node } from "@tiptap/core";
+import { mergeAttributes, Node, type CommandProps } from "@tiptap/core";
+import { TextSelection } from "@tiptap/pm/state";
 import StarterKit from "@tiptap/starter-kit";
 import Highlight from "@tiptap/extension-highlight";
 import { Placeholder } from "@tiptap/extensions";
+
+declare module "@tiptap/core" {
+  interface Commands<ReturnType> {
+    blockInsert: {
+      /**
+       * Fügt einen Bibel- oder Notiz-Block ein: um markierten Text herum, sonst anstelle eines
+       * leeren Absatzes oder direkt nach dem aktuellen Absatz/der Überschrift. Cursor landet im Block.
+       */
+      insertBlock: (name: "bibleBlock" | "note", attrs?: Record<string, string>, text?: string) => ReturnType;
+    };
+  }
+}
+
+function insertBlock(name: "bibleBlock" | "note", attrs: Record<string, string> = {}, text = "") {
+  return ({ state, tr, dispatch, commands }: CommandProps) => {
+    const { selection, schema } = state;
+    const type = schema.nodes[name];
+    if (!type) return false;
+
+    // Markierter Text ohne eigenen Verstext: den markierten Bereich einpacken.
+    if (!selection.empty && !text.trim() && commands.wrapIn(name, attrs)) return true;
+
+    const paragraphs = text
+      .split(/\n\s*\n|\n/)
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .map((t) => schema.nodes.paragraph.create(null, schema.text(t)));
+    const node = type.create(attrs, paragraphs.length ? paragraphs : [schema.nodes.paragraph.create()]);
+
+    const { $from } = selection;
+    let from: number;
+    let to: number;
+    if ($from.depth === 0) {
+      from = to = selection.from;
+    } else {
+      const block = $from.node(1); // oberster Block, in dem der Cursor steht
+      const isEmptyParagraph = block.type.name === "paragraph" && block.content.size === 0;
+      from = isEmptyParagraph ? $from.before(1) : $from.after(1);
+      to = isEmptyParagraph ? $from.after(1) : from;
+    }
+    if (!dispatch) return true;
+    tr.replaceWith(from, to, node);
+    tr.setSelection(TextSelection.create(tr.doc, from + node.nodeSize - 2)); // Ende des letzten Absatzes im Block
+    tr.scrollIntoView();
+    return true;
+  };
+}
 
 /** Bibelstelle: eingerückter Block mit Stellenangabe (oben) und Übersetzung (unten). */
 export const BibleBlock = Node.create({
@@ -28,6 +76,9 @@ export const BibleBlock = Node.create({
   },
   renderHTML({ HTMLAttributes }) {
     return ["div", mergeAttributes(HTMLAttributes, { "data-type": "bible", class: "bible-block" }), 0];
+  },
+  addCommands() {
+    return { insertBlock: (name, attrs, text) => insertBlock(name, attrs, text) };
   },
 });
 
