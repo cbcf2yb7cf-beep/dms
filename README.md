@@ -72,3 +72,20 @@ Lokal testen ohne DMG (auf einem Mac): `DMS_DESKTOP=1 npm run build && node desk
 Der Mac-Build macht das automatisch; die Datei liegt in der App unter `Resources/server/bible/bible.db`.
 Übersetzungen: Luther 1912, Elberfelder 1905, Schlachter 1951 (CC BY), Elberfelder bibelkommentare.de
 (CC BY-NC-ND), Textbibel 1906, KJV, BSB, WEB. Grundtext/Lexika: STEPBible (CC BY), Querverweise: OpenBible.info (CC BY).
+
+## Lokal auf dem Mac entwickeln
+
+Voraussetzungen: Xcode-Befehlszeilenwerkzeuge (`xcode-select --install`), Node.js 22 (z. B. `brew install node@22`),
+GitHub-Zugang (`brew install gh && gh auth login`).
+
+```bash
+gh repo clone cbcf2yb7cf-beep/dms ~/Entwicklung/dms
+cd ~/Entwicklung/dms
+npm install
+cp .env.example .env.local        # Werte prüfen
+npm run bibel                     # einmalig: Bibeldaten
+npm run dev                       # http://localhost:3000
+```
+
+Die Entwicklungsdaten liegen in `./data/` – getrennt von den echten Daten der installierten App.
+Hinweise für Claude Code stehen in `CLAUDE.md`.

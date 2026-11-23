@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "bibel": "node scripts/bible/build.mjs data/bible.db",
+    "mac-app": "DMS_DESKTOP=1 next build && node desktop/prepare.mjs && npm --prefix desktop install && npm --prefix desktop start"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.12.0",
