@@ -16,7 +16,7 @@ ist aber seit 2026-11-22 nicht mehr in Betrieb (dms.hausundrasen.de abgeschaltet
 | 2 | Archiv & Editor (Tiptap), Versionen, Papierkorb, Bibelstellen-Erkennung, Filter, ⌘K-Dokumentsuche | ✅ |
 | 3 | Import: Ordner/Dateien (DOCX, DOCM, DOC, RTF, TXT, PPTX, PDF), Angaben aus Dateinamen, Originale, Bericht, Rückgängig | ✅ (OCR für Scans offen) |
 | 4 | Bibelzentrum: 8 freie Übersetzungen (6 dt., 3 engl.) parallel, Konkordanz, Grundtext + Strong-Lexikon, Querverweise, Lesezeichen/Notizen, Verse im Editor | ✅ |
-| 5 | Suche & Themennetz | offen |
+| 5 | Volltextsuche mit deutschen Wortstämmen (FTS5 + Snowball), Relevanz, Textausschnitte; Themennetz (Zusammenführen, Oberthemen, Querbezüge), Reihen, Bibelbücher | ✅ |
 | 6 | Präsentationen + PWA/offline | offen |
 | 7 | Claude-Assistent | offen |
 

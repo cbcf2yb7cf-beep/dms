@@ -15,6 +15,8 @@ import {
 } from "@/db/schema";
 import { blockReferences, EMPTY_DOC, plainText, sermonTemplate, wordCount, type JSONNode } from "@/lib/content";
 import { formatRef, parseRef, parseRefs } from "@/lib/bible/refs";
+import { indexDocument, searchIds } from "@/lib/search";
+import { snippet } from "@/lib/search/stem";
 
 const AUTO_VERSION_EVERY_MS = 5 * 60 * 1000;
 const KEEP_AUTO_VERSIONS = 100;
@@ -163,6 +165,14 @@ export function saveDocument(id: string, input: SaveInput, baseUpdatedAt: number
     tx.delete(documentTags).where(eq(documentTags.documentId, id)).run();
     for (const name of clean(input.tags)) tx.insert(documentTags).values({ documentId: id, name }).onConflictDoNothing().run();
 
+    // Volltextsuche (Wortstämme) aktualisieren.
+    indexDocument(tx as unknown as Parameters<typeof indexDocument>[0], {
+      id,
+      title: input.title,
+      plainText: text,
+      meta: [input.series, input.occasion, input.place, input.mainRef, input.summary, ...input.topics, ...input.tags],
+    });
+
     // Bibelstellen neu indizieren: Haupttext > Bibel-Block > Fließtext.
     tx.delete(bibleRefs).where(eq(bibleRefs.documentId, id)).run();
     const seen = new Set<string>();
@@ -267,16 +277,18 @@ export type ListFilter = {
   series?: string;
   year?: string;
   stelle?: string;
+  /** Ganzes Bibelbuch (1–66) */
+  book?: number;
   favorite?: boolean;
   view?: "aktiv" | "archiv" | "papierkorb";
-  sort?: "bearbeitet" | "gehalten" | "titel" | "erstellt";
+  sort?: "relevanz" | "bearbeitet" | "gehalten" | "titel" | "erstellt";
   limit?: number;
 };
 
 export type ListItem = Pick<
   Document,
   "id" | "type" | "title" | "status" | "heldOn" | "occasion" | "series" | "mainRef" | "favorite" | "wordCount" | "updatedAt" | "createdAt" | "deletedAt" | "archivedAt"
-> & { topics: string[] };
+> & { topics: string[]; snippet?: string | null };
 
 const likeEscape = (s: string) => `%${s.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 
@@ -300,6 +312,10 @@ export function listDocuments(filter: ListFilter = {}): { items: ListItem[]; ste
   }
   if (filter.tag) where.push(sql`EXISTS (SELECT 1 FROM document_tags g WHERE g.document_id = ${documents.id} AND g.name = ${filter.tag} COLLATE NOCASE)`);
 
+  if (filter.book && filter.book >= 1 && filter.book <= 66) {
+    where.push(sql`EXISTS (SELECT 1 FROM bible_refs r WHERE r.document_id = ${documents.id} AND r.book = ${filter.book})`);
+  }
+
   let stelle: string | undefined;
   if (filter.stelle) {
     const ref = parseRef(filter.stelle);
@@ -311,22 +327,21 @@ export function listDocuments(filter: ListFilter = {}): { items: ListItem[]; ste
     }
   }
 
+  // Volltextsuche über Wortstämme (Titel, Text, Themen, Reihe, Ort …), nach Relevanz.
+  let ranked: { ids: string[]; stems: string[] } | null = null;
   if (filter.q?.trim()) {
-    // Einfache Suche (Phase 2); Volltext mit Wortformen folgt in Phase 5.
-    for (const word of filter.q.trim().split(/\s+/).slice(0, 8)) {
-      const p = likeEscape(word);
-      where.push(
-        sql`(${documents.title} LIKE ${p} ESCAPE '\\' OR ${documents.plainText} LIKE ${p} ESCAPE '\\' OR ${documents.summary} LIKE ${p} ESCAPE '\\' OR ${documents.series} LIKE ${p} ESCAPE '\\' OR ${documents.mainRef} LIKE ${p} ESCAPE '\\' OR ${documents.place} LIKE ${p} ESCAPE '\\' OR ${documents.occasion} LIKE ${p} ESCAPE '\\')`,
-      );
-    }
+    ranked = searchIds(filter.q);
+    if (ranked) where.push(ranked.ids.length ? inArray(documents.id, ranked.ids) : sql`0`);
   }
 
+  const sort = filter.sort ?? (ranked ? "relevanz" : "bearbeitet");
   const order = {
+    relevanz: [desc(documents.updatedAt)], // Rangfolge wird unten nach dem Suchindex sortiert
     bearbeitet: [desc(documents.updatedAt)],
     gehalten: [sql`${documents.heldOn} IS NULL`, desc(documents.heldOn), desc(documents.updatedAt)],
     titel: [sql`${documents.title} = ''`, sql`${documents.title} COLLATE NOCASE`],
     erstellt: [desc(documents.createdAt)],
-  }[filter.sort ?? "bearbeitet"];
+  }[sort];
 
   const rows = db()
     .select({
@@ -352,7 +367,24 @@ export function listDocuments(filter: ListFilter = {}): { items: ListItem[]; ste
     .all();
 
   const topicMap = topicNamesFor(rows.map((r) => r.id));
-  return { items: rows.map((r) => ({ ...r, topics: topicMap.get(r.id) ?? [] })), stelle };
+  let items: ListItem[] = rows.map((r) => ({ ...r, topics: topicMap.get(r.id) ?? [] }));
+  if (ranked) {
+    if (sort === "relevanz") {
+      const rank = new Map(ranked.ids.map((id, i) => [id, i]));
+      items.sort((a, b) => (rank.get(a.id) ?? 1e9) - (rank.get(b.id) ?? 1e9));
+    }
+    // Textausschnitt mit markierten Treffern
+    const texts = new Map(
+      db()
+        .select({ id: documents.id, plainText: documents.plainText })
+        .from(documents)
+        .where(inArray(documents.id, items.slice(0, 200).map((i) => i.id)))
+        .all()
+        .map((r) => [r.id, r.plainText]),
+    );
+    items = items.map((i) => ({ ...i, snippet: snippet(texts.get(i.id) ?? "", ranked!.stems) }));
+  }
+  return { items, stelle };
 }
 
 /** Werte für Filter und Vorschläge im Editor. */
@@ -420,19 +452,24 @@ export function topicCounts(limit = 20) {
 
 /** Schnellsuche für ⌘K: Titel, Reihe, Haupttext. */
 export function quickSearch(q: string, limit = 8) {
+  const cols = { id: documents.id, title: documents.title, type: documents.type, mainRef: documents.mainRef, heldOn: documents.heldOn };
+  // Titel, Reihe, Haupttext direkt – dann Volltext nach Relevanz
   const p = likeEscape(q.trim());
-  return db()
-    .select({ id: documents.id, title: documents.title, type: documents.type, mainRef: documents.mainRef, heldOn: documents.heldOn })
+  const direct = db()
+    .select(cols)
     .from(documents)
-    .where(
-      and(
-        isNull(documents.deletedAt),
-        sql`(${documents.title} LIKE ${p} ESCAPE '\\' OR ${documents.series} LIKE ${p} ESCAPE '\\' OR ${documents.mainRef} LIKE ${p} ESCAPE '\\')`,
-      ),
-    )
+    .where(and(isNull(documents.deletedAt), sql`(${documents.title} LIKE ${p} ESCAPE '\\' OR ${documents.series} LIKE ${p} ESCAPE '\\' OR ${documents.mainRef} LIKE ${p} ESCAPE '\\')`))
     .orderBy(desc(documents.updatedAt))
     .limit(limit)
     .all();
+  if (direct.length >= limit) return direct;
+  const ranked = searchIds(q, 50);
+  if (!ranked?.ids.length) return direct;
+  const seen = new Set(direct.map((d) => d.id));
+  const more = db().select(cols).from(documents).where(and(isNull(documents.deletedAt), inArray(documents.id, ranked.ids.filter((id) => !seen.has(id))))).all();
+  const rank = new Map(ranked.ids.map((id, i) => [id, i]));
+  more.sort((a, b) => rank.get(a.id)! - rank.get(b.id)!);
+  return [...direct, ...more].slice(0, limit);
 }
 
 // ── Aktionen ───────────────────────────────────────────────────────────────
@@ -448,12 +485,14 @@ export const restoreFromTrash = (id: string) => touch(id, { deletedAt: null });
 /** Endgültig löschen — nur aus dem Papierkorb heraus. */
 export function deleteForever(id: string) {
   db().delete(documents).where(and(eq(documents.id, id), isNotNull(documents.deletedAt))).run();
+  db().run(sql`DELETE FROM docs_fts WHERE doc_id NOT IN (SELECT id FROM documents)`);
 }
 
 /** Papierkorb nach TRASH_DAYS Tagen leeren. */
 export function purgeTrash(now = Date.now()) {
   const cutoff = new Date(now - TRASH_DAYS * 86_400_000);
-  db().delete(documents).where(and(isNotNull(documents.deletedAt), lt(documents.deletedAt, cutoff))).run();
+  const removed = db().delete(documents).where(and(isNotNull(documents.deletedAt), lt(documents.deletedAt, cutoff))).run();
+  if (removed.changes) db().run(sql`DELETE FROM docs_fts WHERE doc_id NOT IN (SELECT id FROM documents)`);
 }
 
 export function duplicateDocument(id: string): string {

@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/page-header";
 import { NewDocumentMenu } from "@/components/new-document-menu";
 import { DocumentList } from "@/components/document-list";
 import { AutoSubmitForm } from "@/components/auto-submit-form";
+import { bookByNumber } from "@/lib/bible/books";
 
 export const metadata = { title: "Archiv" };
 
@@ -15,6 +16,7 @@ type Params = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)?.trim() || undefined;
 
 const SORTS = [
+  ["relevanz", "Relevanz"],
   ["bearbeitet", "Zuletzt bearbeitet"],
   ["gehalten", "Gehalten am"],
   ["titel", "Titel A–Z"],
@@ -36,11 +38,12 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
     series: one(p.reihe),
     year: one(p.jahr),
     favorite: one(p.favoriten) === "1",
-    sort: (SORTS.find(([k]) => k === one(p.sort))?.[0] ?? "bearbeitet") as ListFilter["sort"],
+    book: Number(one(p.buch)) || undefined,
+    sort: SORTS.find(([k]) => k === one(p.sort))?.[0] as ListFilter["sort"], // ohne Angabe: Relevanz bei Suche, sonst zuletzt bearbeitet
   };
   const { items, stelle } = listDocuments(filter);
   const f = facets();
-  const filtered = Boolean(filter.q || filter.stelle || filter.type || filter.status || filter.topic || filter.tag || filter.series || filter.year || filter.favorite);
+  const filtered = Boolean(filter.book || filter.q || filter.stelle || filter.type || filter.status || filter.topic || filter.tag || filter.series || filter.year || filter.favorite);
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-7 px-5 py-8 sm:px-10 sm:py-10">
@@ -74,7 +77,7 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
           <label className="flex min-h-11 flex-[2_1_280px] items-center gap-2 rounded-lg border border-border-strong bg-surface px-3 focus-within:border-accent">
             <Search className="size-4 shrink-0 text-muted" aria-hidden="true" />
             <span className="sr-only">Suchbegriff</span>
-            <input name="q" defaultValue={filter.q} placeholder="Titel oder Text durchsuchen" className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted" />
+            <input name="q" defaultValue={filter.q} placeholder="Suchen – Wortformen zählen mit („vergeben“ findet „Vergebung“)" className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted" />
           </label>
           <label className="flex min-h-11 flex-[1_1_200px] items-center gap-2 rounded-lg border border-border-strong bg-surface px-3 focus-within:border-accent">
             <BookOpen className="size-4 shrink-0 text-muted" aria-hidden="true" />
@@ -90,11 +93,12 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
           {f.series.length > 0 && <Select name="reihe" label="Reihe" value={filter.series} options={f.series.map((t) => [t, t])} />}
           {f.years.length > 0 && <Select name="jahr" label="Jahr" value={filter.year} options={f.years.map((t) => [t, t])} />}
           {filter.tag && <input type="hidden" name="schlagwort" value={filter.tag} />}
+        {filter.book && <input type="hidden" name="buch" value={filter.book} />}
           <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-border-strong bg-surface px-3 text-sm">
             <input type="checkbox" name="favoriten" value="1" defaultChecked={filter.favorite} className="size-4 accent-[var(--accent)]" /> Nur Favoriten
           </label>
           <span className="ml-auto" />
-          <Select name="sort" label="Sortierung" value={filter.sort === "bearbeitet" ? undefined : filter.sort} options={SORTS.slice(1) as unknown as [string, string][]} placeholder="Zuletzt bearbeitet" />
+          <Select name="sort" label="Sortierung" value={filter.sort} options={(filter.q ? SORTS.slice(1) : SORTS.slice(2)) as unknown as [string, string][]} placeholder={filter.q ? "Relevanz" : "Zuletzt bearbeitet"} />
         </div>
       </AutoSubmitForm>
 
@@ -108,6 +112,7 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
           )}
           {filter.stelle && !stelle && <span className="text-danger"> – „{filter.stelle}“ ist keine erkannte Bibelstelle</span>}
           {filter.tag && <> mit Schlagwort <strong className="text-ink">{filter.tag}</strong></>}
+          {filter.book && filter.book <= 66 && <> zu <strong className="text-ink">{bookByNumber(filter.book).name}</strong></>}
         </span>
         {filtered && (
           <Link href={view === "archiv" ? "/archiv?ansicht=archiv" : "/archiv"} className="inline-flex min-h-11 items-center gap-1 text-ink-2 hover:text-ink">

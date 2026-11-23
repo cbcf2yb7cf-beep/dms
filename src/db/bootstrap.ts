@@ -4,9 +4,11 @@ import { sql } from "drizzle-orm";
 import { db } from "./index";
 import { users, type User } from "./schema";
 import { isLocal } from "@/lib/local";
+import { rebuildIndexIfNeeded } from "@/lib/search";
 
 /** Beim Serverstart: Datenbank öffnen (migriert) und den ersten Benutzer anlegen, falls keiner existiert. */
 export async function bootstrap() {
+  rebuildIndexIfNeeded();
   if (isLocal()) {
     ensureLocalUser();
     return;

@@ -64,6 +64,11 @@ describe("Dokumente", () => {
     expect(titles({ topic: "glaube" })).toContain("Glaube und Werke");
     expect(titles({ q: "Gottes Plan" })).toContain("Glaube und Werke");
     expect(titles({ q: "Gottesdienst" })).toContain("Glaube und Werke"); // Anlass wird mit durchsucht
+    expect(titles({ q: "Pläne" })).toContain("Glaube und Werke"); // Wortform: "Plan" im Text
+    expect(titles({ q: "glauben" })).toContain("Glaube und Werke"); // Titel
+    expect(titles({ q: "Glaube -Gottesdienst" })).not.toContain("Glaube und Werke");
+    const hit = listDocuments({ q: "Gottes Plan" }).items.find((d) => d.title === "Glaube und Werke");
+    expect(hit?.snippet).toContain("\u0001Plan\u0002");
     expect(titles({ q: "100%" })).toEqual([]); // LIKE-Platzhalter werden escaped
     expect(titles({ year: "2026" })).toContain("Glaube und Werke");
     expect(topicCounts().find((t) => t.name === "Glaube")?.n).toBeGreaterThanOrEqual(2);

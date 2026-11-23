@@ -4,6 +4,7 @@ import type { ListItem } from "@/lib/documents";
 import { STATUS_LABELS, TYPE_LABELS } from "@/lib/doc-meta";
 import { formatDay, formatRelative } from "@/lib/format";
 import { formatRef, parseRef } from "@/lib/bible/refs";
+import { Hits } from "@/components/bible/hits";
 
 const STATUS_STYLE = {
   entwurf: "border-border-strong text-ink-2",
@@ -34,6 +35,7 @@ export function DocumentList({ items, actions, link = true, now = Date.now() }: 
               {d.series && <span>· {d.series}</span>}
               {d.occasion && <span>· {d.occasion}</span>}
             </span>
+            {d.snippet && <span className="font-serif text-[15px] leading-relaxed text-ink-2"><Hits text={d.snippet} /></span>}
             {d.topics.length > 0 && (
               <span className="flex flex-wrap gap-1.5 pt-0.5">
                 {d.topics.slice(0, 6).map((t) => (

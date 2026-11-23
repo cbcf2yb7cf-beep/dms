@@ -17,7 +17,7 @@ export const metadata = { title: "Dashboard" };
 const MODULES: Record<string, { phase?: number; text: string }> = {
   "/archiv": { text: "Predigten und Vorträge schreiben, ordnen und wiederfinden" },
   "/bibel": { text: "8 freie Übersetzungen parallel, Konkordanz, Grundtext mit Strong, Querverweise" },
-  "/themen": { phase: 5, text: "Alle Predigten und Bibelstellen zu einem Thema" },
+  "/themen": { text: "Themen ordnen und zusammenführen, Reihen, meistgepredigte Bibelbücher" },
   "/praesentationen": { phase: 6, text: "Folien aus der Gliederung, Referentenansicht am Beamer" },
   "/assistent": { phase: 7, text: "Claude hilft bei Gliederung, Recherche und Folien" },
 };
