@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { desc } from "drizzle-orm";
+import { desc, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { aiRuns } from "@/db/schema";
@@ -252,7 +252,8 @@ export async function run(input: TaskInput): Promise<RunResult> {
 }
 
 export function recentRuns(limit = 30) {
-  return db().select().from(aiRuns).orderBy(desc(aiRuns.createdAt)).limit(limit).all();
+  // Bei gleicher Millisekunde entscheidet die Speicherreihenfolge (rowid).
+  return db().select().from(aiRuns).orderBy(desc(aiRuns.createdAt), desc(sql`rowid`)).limit(limit).all();
 }
 
 export function totalCost() {

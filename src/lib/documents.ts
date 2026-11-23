@@ -189,7 +189,7 @@ export function saveDocument(id: string, input: SaveInput, baseUpdatedAt: number
     add(parseRefs(text), "text");
 
     // Version: manuell immer, sonst höchstens alle 5 Minuten und nur bei Änderung.
-    const last = tx.select().from(documentVersions).where(eq(documentVersions.documentId, id)).orderBy(desc(documentVersions.createdAt)).limit(1).get();
+    const last = tx.select().from(documentVersions).where(eq(documentVersions.documentId, id)).orderBy(desc(documentVersions.createdAt), desc(documentVersions.id)).limit(1).get();
     const changed = !last || last.contentJson !== json || last.title !== input.title.trim();
     const due = !last || now.getTime() - last.createdAt.getTime() >= AUTO_VERSION_EVERY_MS;
     if (opts.manualVersion || (changed && due)) {
@@ -225,7 +225,7 @@ export function listVersions(id: string) {
     .select({ id: documentVersions.id, title: documentVersions.title, wordCount: documentVersions.wordCount, reason: documentVersions.reason, createdAt: documentVersions.createdAt })
     .from(documentVersions)
     .where(eq(documentVersions.documentId, id))
-    .orderBy(desc(documentVersions.createdAt))
+    .orderBy(desc(documentVersions.createdAt), desc(documentVersions.id))
     .all();
 }
 

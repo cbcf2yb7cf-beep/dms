@@ -76,6 +76,24 @@ describe("Assistent", () => {
     setSetting("ai.model", "claude-opus-5-5");
   });
 
+  it("Verlauf: bei gleicher Millisekunde gilt die Speicherreihenfolge", async () => {
+    const id = doc({});
+    const realNow = Date.now;
+    const fixed = realNow();
+    Date.now = () => fixed; // alle Läufe in derselben Millisekunde (wie auf schnellen Rechnern)
+    try {
+      reply("eins");
+      await run({ task: "zusammenfassung", documentId: id });
+      reply("zwei");
+      await run({ task: "zusammenfassung", documentId: id });
+      reply("drei");
+      await run({ task: "zusammenfassung", documentId: id });
+    } finally {
+      Date.now = realNow;
+    }
+    expect(recentRuns(3).map((r) => r.result)).toEqual(["drei", "zwei", "eins"]);
+  });
+
   it("Ablehnung und Fehler werden verständlich gemeldet und protokolliert", async () => {
     const id = doc({});
     reply("", { stop_reason: "refusal" });
