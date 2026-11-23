@@ -18,7 +18,7 @@ ist aber seit 2026-11-22 nicht mehr in Betrieb (dms.hausundrasen.de abgeschaltet
 | 4 | Bibelzentrum: 8 freie Übersetzungen (6 dt., 3 engl.) parallel, Konkordanz, Grundtext + Strong-Lexikon, Querverweise, Lesezeichen/Notizen, Verse im Editor | ✅ |
 | 5 | Volltextsuche mit deutschen Wortstämmen (FTS5 + Snowball), Relevanz, Textausschnitte; Themennetz (Zusammenführen, Oberthemen, Querbezüge), Reihen, Bibelbücher | ✅ |
 | 6 | Präsentationen: Folien-Bausteine, 4 Designs, Entwurf aus Predigt, Vortrag mit Präsenter-Tasten, Referentenansicht (synchron), Beamer (2. Bildschirm), PPTX/PDF | ✅ |
-| 7 | Claude-Assistent | offen |
+| 7 | Claude-Assistent: Zusammenfassen, Themen/Bibelstellen, Gliederung, Vergleich, Folienentwurf, Archivfrage mit Quellen; Vorschau + Bestätigung vor jedem Aufruf; Schlüssel im macOS-Schlüsselbund; Opus 5.5 (Standard)/Sonnet 5.5/Haiku 5.5 | ✅ |
 
 ## Technik
 

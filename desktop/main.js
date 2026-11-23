@@ -1,6 +1,6 @@
 // DMS als Mac-App: startet den Next.js-Server (aus ../.next/standalone bzw. Resources/server)
 // nur auf 127.0.0.1 und öffnet ihn in einem eigenen Fenster. Daten: ~/Library/Application Support/DMS
-const { app, BrowserWindow, Menu, dialog, ipcMain, screen, session, shell, utilityProcess } = require("electron");
+const { app, BrowserWindow, Menu, dialog, ipcMain, safeStorage, screen, session, shell, utilityProcess } = require("electron");
 const { execFileSync } = require("node:child_process");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
@@ -25,6 +25,15 @@ function secret() {
   const file = path.join(dataDir, "secret");
   if (!fs.existsSync(file)) fs.writeFileSync(file, crypto.randomBytes(32).toString("base64"), { mode: 0o600 });
   return fs.readFileSync(file, "utf8").trim();
+}
+
+// Claude-API-Schlüssel: mit safeStorage (macOS-Schlüsselbund) verschlüsselt, nie in der Datenbank.
+const keyFile = () => path.join(dataDir, "claude-key.enc");
+function loadApiKey() {
+  try {
+    if (fs.existsSync(keyFile()) && safeStorage.isEncryptionAvailable()) return safeStorage.decryptString(fs.readFileSync(keyFile()));
+  } catch {}
+  return "";
 }
 
 /** Voller Name des Mac-Kontos ("Sascha Wiebe"), sonst Kurzname. */
@@ -73,6 +82,7 @@ async function startServer() {
       DMS_USER_NAME: userName(),
       NEXTAUTH_SECRET: secret(),
       NEXTAUTH_URL: baseUrl,
+      ANTHROPIC_API_KEY: loadApiKey(),
     },
   });
   server.stdout?.pipe(log);
@@ -245,6 +255,22 @@ ipcMain.handle("dms:present", async (event, pathname) => {
   audience.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   await audience.loadURL(`${baseUrl}${pathname}`);
   return external ? "extern" : "intern";
+});
+
+const fromApp = (event) => Boolean(baseUrl) && Boolean(event.senderFrame?.url.startsWith(`${baseUrl}/`));
+ipcMain.handle("dms:set-api-key", async (event, key) => {
+  if (!fromApp(event)) return "Nicht erlaubt.";
+  if (typeof key !== "string" || !/^sk-ant-[A-Za-z0-9_-]{20,}$/.test(key.trim())) return "Das sieht nicht wie ein Claude-API-Schlüssel aus (beginnt mit sk-ant-).";
+  if (!safeStorage.isEncryptionAvailable()) return "Der macOS-Schlüsselbund ist nicht verfügbar.";
+  fs.writeFileSync(keyFile(), safeStorage.encryptString(key.trim()), { mode: 0o600 });
+  server?.postMessage({ type: "api-key", key: key.trim() });
+  return "";
+});
+ipcMain.handle("dms:clear-api-key", async (event) => {
+  if (!fromApp(event)) return "Nicht erlaubt.";
+  fs.rmSync(keyFile(), { force: true });
+  server?.postMessage({ type: "api-key", key: "" });
+  return "";
 });
 
 app.on("second-instance", () => {

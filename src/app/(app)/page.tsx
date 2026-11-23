@@ -19,7 +19,7 @@ const MODULES: Record<string, { phase?: number; text: string }> = {
   "/bibel": { text: "8 freie Übersetzungen parallel, Konkordanz, Grundtext mit Strong, Querverweise" },
   "/themen": { text: "Themen ordnen und zusammenführen, Reihen, meistgepredigte Bibelbücher" },
   "/praesentationen": { text: "Folien aus der Gliederung, Referentenansicht, Beamer, PowerPoint/PDF" },
-  "/assistent": { phase: 7, text: "Claude hilft bei Gliederung, Recherche und Folien" },
+  "/assistent": { text: "Claude hilft bei Zusammenfassung, Gliederung, Recherche und Folien – mit Vorschau" },
 };
 
 function greeting(hour: number) {

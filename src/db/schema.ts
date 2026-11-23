@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 // Spiegelt die SQL-Migrationen in ./migrations. Migrationen werden bewusst
 // von Hand geschrieben (FTS5-Tabellen und Trigger folgen in Phase 2/5).
@@ -154,3 +154,25 @@ export const presentations = sqliteTable("presentations", {
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 });
 export type Presentation = typeof presentations.$inferSelect;
+
+// ── Phase 7: Assistent ──────────────────────────────────────────────────────
+
+export const appSettings = sqliteTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+});
+
+export const aiRuns = sqliteTable("ai_runs", {
+  id: text("id").primaryKey(),
+  task: text("task").notNull(),
+  model: text("model").notNull(),
+  documentIds: text("document_ids").notNull().default("[]"),
+  question: text("question").notNull().default(""),
+  status: text("status", { enum: ["ok", "abgelehnt", "fehler"] }).notNull(),
+  result: text("result").notNull().default(""),
+  inputTokens: integer("input_tokens").notNull().default(0),
+  outputTokens: integer("output_tokens").notNull().default(0),
+  costUsd: real("cost_usd").notNull().default(0),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+});
+export type AiRun = typeof aiRuns.$inferSelect;

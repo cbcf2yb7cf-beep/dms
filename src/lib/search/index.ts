@@ -1,7 +1,7 @@
 import "server-only";
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
-import { parseQuery, stemText } from "./stem";
+import { parseQuery, parseQuestion, stemText } from "./stem";
 
 type Runner = { run: (query: ReturnType<typeof sql>) => unknown; all: <T>(query: ReturnType<typeof sql>) => T[] };
 
@@ -31,8 +31,8 @@ export function reindexDocuments(ids: string[]) {
 }
 
 /** Treffer nach Relevanz (Titel zählt am meisten). Gibt doc_ids in Rangfolge zurück. */
-export function searchIds(input: string, limit = 2000): { ids: string[]; stems: string[] } | null {
-  const q = parseQuery(input);
+export function searchIds(input: string, limit = 2000, mode: "alle" | "frage" = "alle"): { ids: string[]; stems: string[] } | null {
+  const q = mode === "frage" ? parseQuestion(input) : parseQuery(input);
   if (!q) return null;
   try {
     const rows = db().all<{ doc_id: string }>(sql`SELECT doc_id FROM docs_fts WHERE docs_fts MATCH ${q.fts} ORDER BY bm25(docs_fts, 0, 6, 1, 3) LIMIT ${limit}`);

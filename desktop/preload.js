@@ -6,4 +6,7 @@ contextBridge.exposeInMainWorld("dmsDesktop", {
   openOriginal: (file) => ipcRenderer.invoke("dms:open-original", file),
   /** Präsentation im Vollbild auf dem zweiten Bildschirm (Beamer) – sonst auf diesem. */
   presentOnDisplay: (path) => ipcRenderer.invoke("dms:present", path),
+  /** Claude-API-Schlüssel im macOS-Schlüsselbund speichern / entfernen. */
+  setApiKey: (key) => ipcRenderer.invoke("dms:set-api-key", key),
+  clearApiKey: () => ipcRenderer.invoke("dms:clear-api-key"),
 });

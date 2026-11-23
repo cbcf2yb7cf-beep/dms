@@ -14,6 +14,7 @@ import {
   PanelRightOpen,
   Presentation,
   Printer,
+  Sparkles,
   Star,
   Trash2,
 } from "lucide-react";
@@ -257,6 +258,9 @@ export function DocumentEditor({ doc, facets }: { doc: EditorDoc; facets: Facets
           <IconButton label="Version sichern (⌘S)" onClick={() => void save({ manualVersion: true })}>
             <BookmarkPlus className="size-5" aria-hidden="true" />
           </IconButton>
+          <Link href={`/assistent?dok=${doc.id}`} className="inline-flex size-11 items-center justify-center rounded-lg text-ink-2 hover:bg-surface-2 hover:text-ink" aria-label="Assistent" title="Assistent (Claude)">
+            <Sparkles className="size-5" aria-hidden="true" />
+          </Link>
           <Link href={`/archiv/${doc.id}/versionen`} className="inline-flex size-11 items-center justify-center rounded-lg text-ink-2 hover:bg-surface-2 hover:text-ink" aria-label="Versionen" title="Versionen">
             <History className="size-5" aria-hidden="true" />
           </Link>

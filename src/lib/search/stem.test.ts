@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseQuery, snippet, stem, stemText } from "./stem";
+import { parseQuery, parseQuestion, snippet, stem, stemText } from "./stem";
 
 describe("Wortstämme", () => {
   it("fasst Wortformen zusammen", () => {
@@ -15,6 +15,12 @@ describe("Wortstämme", () => {
     expect(parseQuery("Glaube -Werke")?.fts).toBe('("glaub"*) NOT ("werk"*)');
     expect(parseQuery("-nur")).toBeNull();
     expect(parseQuery('" OR 1=1 --')?.fts).toBe('("or"*) AND ("1"* AND "1"*)'); // jedes Wort einzeln gequotet: kein Ausbruch aus der Suchsprache
+  });
+
+  it("Fragen: Füllwörter weg, ein Begriff genügt", () => {
+    expect(parseQuestion("Was habe ich über Vergebung gesagt?")?.fts).toBe('"vergeb"*');
+    expect(parseQuestion("Gnade und Glaube bei Paulus")?.fts).toBe('"gnad"* OR "glaub"* OR "paulus"*');
+    expect(parseQuestion("was ist das?")).toBeNull();
   });
 
   it("Textausschnitt markiert alle Formen", () => {

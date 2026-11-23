@@ -3,6 +3,12 @@ import { PasswordForm } from "@/components/password-form";
 import { TotpSection } from "@/components/totp-section";
 import { requireUser } from "@/lib/session";
 import { isLocal, localDataDir } from "@/lib/local";
+import { aiConfigured } from "@/lib/ai/client";
+import { MODELS } from "@/lib/ai/models";
+import { currentModel } from "@/lib/ai/tasks";
+import { setModelAction } from "@/lib/actions/ai";
+import { ApiKeyForm } from "@/components/ai/api-key-form";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata = { title: "Einstellungen" };
 
@@ -32,6 +38,21 @@ export default async function SettingsPage() {
       ) : (
         <ServerSettings user={user} enabledSince={enabledSince} recoveryLeft={recoveryLeft} />
       )}
+
+      <section id="assistent" className="card flex scroll-mt-6 flex-col gap-4">
+        <h2 className="text-lg font-semibold">Assistent (Claude)</h2>
+        <ApiKeyForm configured={aiConfigured()} />
+        <form action={setModelAction} className="flex flex-wrap items-end gap-2">
+          <div>
+            <label htmlFor="ai-model" className="label">Modell</label>
+            <select id="ai-model" name="model" defaultValue={currentModel()} className="input w-auto">
+              {MODELS.map((m) => <option key={m.id} value={m.id}>{m.name} – {m.note} ({m.input} $ / {m.output} $ je Mio. Tokens)</option>)}
+            </select>
+          </div>
+          <SubmitButton className="btn-secondary">Speichern</SubmitButton>
+        </form>
+        <p className="text-sm text-ink-2">Der Assistent braucht Internet. Vor jedem Aufruf siehst du, was gesendet wird. Lehnt Claude eine Anfrage aus Sicherheitsgründen ab, wird sie automatisch mit einem passenden anderen Modell wiederholt (nicht bei Haiku).</p>
+      </section>
 
       <section className="card flex flex-col gap-2">
         <h2 className="text-lg font-semibold">Darstellung</h2>

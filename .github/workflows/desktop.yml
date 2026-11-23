@@ -106,6 +106,10 @@ jobs:
           check "/bibel?b=43&c=3" "-b dms-local-token=probe" 200
           check "/bibel/suche?q=Gnade" "-b dms-local-token=probe" 200
           check "/bibel/strong/G5485" "-b dms-local-token=probe" 200
+          check /themen "-b dms-local-token=probe" 200
+          check /praesentationen "-b dms-local-token=probe" 200
+          check /assistent "-b dms-local-token=probe" 200
+          check "/archiv?q=Gnade" "-b dms-local-token=probe" 200
           curl -s -b dms-local-token=probe "http://127.0.0.1:4123/api/bibel/text?ref=Joh%203,16&tr=luther1912" | grep -q "Also hat Gott die Welt geliebt" && echo "Bibeltext ok"
           test -f "$DATA/app.db"
           kill $PID
