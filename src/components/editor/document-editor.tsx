@@ -12,6 +12,7 @@ import {
   History,
   PanelRightClose,
   PanelRightOpen,
+  Presentation,
   Printer,
   Star,
   Trash2,
@@ -21,6 +22,7 @@ import { outline as getOutline, plainText, wordCount, type JSONNode } from "@/li
 import { STATUS_OPTIONS, TYPE_LABELS, TYPE_OPTIONS } from "@/lib/doc-meta";
 import { formatRef, parseRef } from "@/lib/bible/refs";
 import { duplicate, toggleArchive, trashDocument } from "@/lib/actions/documents";
+import { presentationFromDocument } from "@/lib/actions/presentations";
 import { TagInput } from "@/components/tag-input";
 import { extensions } from "./extensions";
 import { Toolbar } from "./toolbar";
@@ -81,7 +83,8 @@ export function DocumentEditor({ doc, facets }: { doc: EditorDoc; facets: Facets
   // Immer die aktuelle save-Funktion (onUpdate des Editors hält sonst die vom ersten Render fest).
   const saveRef = useRef<(opts?: { manualVersion?: boolean; force?: boolean }) => Promise<boolean>>(async () => false);
   const titleRef = useRef<HTMLTextAreaElement>(null);
-  const forms = useRef<{ duplicate: HTMLFormElement | null; archive: HTMLFormElement | null; trash: HTMLFormElement | null }>({
+  const forms = useRef<{ duplicate: HTMLFormElement | null; archive: HTMLFormElement | null; trash: HTMLFormElement | null; slides: HTMLFormElement | null }>({
+    slides: null,
     duplicate: null,
     archive: null,
     trash: null,
@@ -260,6 +263,12 @@ export function DocumentEditor({ doc, facets }: { doc: EditorDoc; facets: Facets
           <IconButton label="Drucken" onClick={() => void save().then(() => window.print())}>
             <Printer className="size-5" aria-hidden="true" />
           </IconButton>
+          <form action={presentationFromDocument} ref={(f) => void (forms.current.slides = f)}>
+            <input type="hidden" name="id" value={doc.id} />
+            <button type="button" onClick={() => void submitAfterSave(forms.current.slides)} className="btn-accent min-h-10 px-3 text-sm" title="Folienentwurf aus Gliederung, Bibel-Blöcken und Zitaten">
+              <Presentation className="size-4" aria-hidden="true" /> Folien
+            </button>
+          </form>
           <form action={duplicate} ref={(f) => void (forms.current.duplicate = f)}>
             <input type="hidden" name="id" value={doc.id} />
             <IconButton label="Duplizieren" onClick={() => void submitAfterSave(forms.current.duplicate)}>

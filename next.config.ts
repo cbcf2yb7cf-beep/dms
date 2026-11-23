@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // Native SQLite-Bindung nicht bündeln, sondern zur Laufzeit aus node_modules laden.
-  serverExternalPackages: ["better-sqlite3", "mammoth", "word-extractor", "unpdf"],
+  serverExternalPackages: ["better-sqlite3", "mammoth", "word-extractor", "unpdf", "pptxgenjs"],
   experimental: {
     // Import: Anfragen laufen durch den Proxy (Zugriffsprüfung), der den Inhalt puffert.
     // Größte PowerPoint im Bestand ~32 MB.

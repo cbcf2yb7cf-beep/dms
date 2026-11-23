@@ -17,7 +17,7 @@ ist aber seit 2026-11-22 nicht mehr in Betrieb (dms.hausundrasen.de abgeschaltet
 | 3 | Import: Ordner/Dateien (DOCX, DOCM, DOC, RTF, TXT, PPTX, PDF), Angaben aus Dateinamen, Originale, Bericht, Rückgängig | ✅ (OCR für Scans offen) |
 | 4 | Bibelzentrum: 8 freie Übersetzungen (6 dt., 3 engl.) parallel, Konkordanz, Grundtext + Strong-Lexikon, Querverweise, Lesezeichen/Notizen, Verse im Editor | ✅ |
 | 5 | Volltextsuche mit deutschen Wortstämmen (FTS5 + Snowball), Relevanz, Textausschnitte; Themennetz (Zusammenführen, Oberthemen, Querbezüge), Reihen, Bibelbücher | ✅ |
-| 6 | Präsentationen + PWA/offline | offen |
+| 6 | Präsentationen: Folien-Bausteine, 4 Designs, Entwurf aus Predigt, Vortrag mit Präsenter-Tasten, Referentenansicht (synchron), Beamer (2. Bildschirm), PPTX/PDF | ✅ |
 | 7 | Claude-Assistent | offen |
 
 ## Technik

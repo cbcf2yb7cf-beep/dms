@@ -1,6 +1,6 @@
 // DMS als Mac-App: startet den Next.js-Server (aus ../.next/standalone bzw. Resources/server)
 // nur auf 127.0.0.1 und öffnet ihn in einem eigenen Fenster. Daten: ~/Library/Application Support/DMS
-const { app, BrowserWindow, Menu, dialog, ipcMain, session, shell, utilityProcess } = require("electron");
+const { app, BrowserWindow, Menu, dialog, ipcMain, screen, session, shell, utilityProcess } = require("electron");
 const { execFileSync } = require("node:child_process");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
@@ -108,7 +108,11 @@ function createWindow() {
 
   // Fremde Links im Standardbrowser öffnen, das App-Fenster bleibt bei DMS.
   const inside = (url) => url === baseUrl || url.startsWith(`${baseUrl}/`);
+  // Eigene Fenster (Vortrag, Referentenansicht, Druck) erlauben – alles andere im Standardbrowser.
   win.webContents.setWindowOpenHandler(({ url }) => {
+    if (inside(url) && /^\/(vortrag|referent|drucken)\//.test(new URL(url).pathname)) {
+      return { action: "allow", overrideBrowserWindowOptions: { width: 1280, height: 800, backgroundColor: "#000000", autoHideMenuBar: true, webPreferences: { contextIsolation: true, sandbox: true, preload: path.join(__dirname, "preload.js") } } };
+    }
     if (!inside(url)) void shell.openExternal(url);
     return { action: "deny" };
   });
@@ -217,6 +221,30 @@ ipcMain.handle("dms:open-original", async (event, file) => {
     return `Kopie fehlgeschlagen: ${e.message}`;
   }
   return shell.openPath(target); // "" = ok, sonst Fehlermeldung
+});
+
+// Präsentation auf dem zweiten Bildschirm (Beamer) im Vollbild öffnen; ohne zweiten Bildschirm hier im Vollbild.
+let audience = null;
+ipcMain.handle("dms:present", async (event, pathname) => {
+  if (!baseUrl || !event.senderFrame?.url.startsWith(`${baseUrl}/`)) return "Nicht erlaubt.";
+  if (typeof pathname !== "string" || !/^\/vortrag\/[0-9a-f-]{36}(\?folie=\d+)?$/.test(pathname)) return "Ungültig.";
+  const external = screen.getAllDisplays().find((d) => d.id !== screen.getPrimaryDisplay().id);
+  const target = external ?? screen.getPrimaryDisplay();
+  if (audience && !audience.isDestroyed()) audience.close();
+  audience = new BrowserWindow({
+    x: target.bounds.x,
+    y: target.bounds.y,
+    width: target.bounds.width,
+    height: target.bounds.height,
+    backgroundColor: "#000000",
+    fullscreen: true,
+    autoHideMenuBar: true,
+    title: "DMS – Vortrag",
+    webPreferences: { contextIsolation: true, sandbox: true, preload: path.join(__dirname, "preload.js") },
+  });
+  audience.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  await audience.loadURL(`${baseUrl}${pathname}`);
+  return external ? "extern" : "intern";
 });
 
 app.on("second-instance", () => {

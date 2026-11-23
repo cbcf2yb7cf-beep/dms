@@ -9,7 +9,7 @@ describe("Migrationen", () => {
     runMigrations(sqlite);
     const tables = (sqlite.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all() as { name: string }[]).map((t) => t.name);
     expect(tables).toEqual(expect.arrayContaining(["_migrations", "login_throttle", "users"]));
-    expect(sqlite.prepare("SELECT count(*) AS n FROM _migrations").get()).toEqual({ n: 5 });
+    expect(sqlite.prepare("SELECT count(*) AS n FROM _migrations").get()).toEqual({ n: 6 });
     expect(tables).toEqual(expect.arrayContaining(["documents", "document_versions", "topics", "bible_refs"]));
   });
 

@@ -141,3 +141,16 @@ export const verseNotes = sqliteTable("verse_notes", {
   text: text("text").notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 });
+
+// ── Phase 6: Präsentationen ─────────────────────────────────────────────────
+
+export const presentations = sqliteTable("presentations", {
+  id: text("id").primaryKey(),
+  title: text("title").notNull().default(""),
+  documentId: text("document_id"),
+  theme: text("theme").notNull().default("anthrazit"),
+  slidesJson: text("slides_json").notNull().default("[]"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
+export type Presentation = typeof presentations.$inferSelect;
